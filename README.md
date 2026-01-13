@@ -52,8 +52,3 @@ Este proyecto ha sido desarrollado como parte de la asignatura **Desarrollo en E
 **David Santiago**
 Estudiante de Desarrollo de Aplicaciones Web (DAW)
 
----
-
-## 📄 Licencia
-
-Proyecto desarrollado con fines educativos. Sin licencia comercial.
