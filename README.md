@@ -52,3 +52,6 @@ Este proyecto ha sido desarrollado como parte de la asignatura **Desarrollo en E
 **David Santiago**
 Estudiante de Desarrollo de Aplicaciones Web (DAW)
 
+<img width="191" height="20" alt="image" src="https://github.com/user-attachments/assets/2ef1a3cb-f12c-48fc-8c2a-9f5b1db74a82" />
+
+
