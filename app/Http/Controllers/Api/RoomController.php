@@ -74,7 +74,7 @@ class RoomController extends Controller
     {
         $data = $request->validate([
             'playerId' => 'required|string',
-            'nickname' => 'required|string'
+            'nickname' => 'nullable|string'
         ]);
 
         try {
@@ -84,7 +84,7 @@ class RoomController extends Controller
             $result = $this->roomService->joinRoom(
                 $roomId,
                 $data['playerId'],
-                $data['nickname']
+                $data['nickname'] ?? null
             );
 
             return response()->json($result);
@@ -93,5 +93,34 @@ class RoomController extends Controller
                 'error' => $e->getMessage()
             ], 404); // devuelve 404 en lugar de 500
         }
+    }
+
+    public function start(string $roomId, Request $request)
+    {
+        $data = $request->validate([
+            'hostId' => 'required|string'
+        ]);
+
+        return response()->json(
+            $this->roomService->startGame($roomId, $data['hostId'])
+        );
+    }
+
+    public function me(string $roomId, Request $request)
+    {
+        $data = $request->validate([
+            'playerId' => 'required|string'
+        ]);
+
+        return response()->json(
+            $this->roomService->getPlayerInfo($roomId, $data['playerId'])
+        );
+    }
+
+    public function state(string $roomId)
+    {
+        return response()->json(
+            $this->roomService->getRoomState($roomId)
+        );
     }
 }
