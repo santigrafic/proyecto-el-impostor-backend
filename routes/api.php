@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\Api\RoomController;
+use App\Http\Controllers\Api\GameController;
 use Illuminate\Support\Facades\Route;
 
 // Unirse a una room
@@ -20,4 +21,12 @@ Route::get('/rooms/{roomId}/me', [RoomController::class, 'me']);
 
 // Devuelve es estado de la aprtida a todos los jugadores
 Route::get('/rooms/{roomId}/state', [RoomController::class, 'state']);
+
+Route::prefix('games')->group(function () {
+    Route::get('{roomId}/state', [GameController::class, 'state']);
+    Route::post('{roomId}/me', [GameController::class, 'me']);
+    Route::post('{roomId}/word', [GameController::class, 'playWord']);
+});
+
+Route::post('/games/{roomId}/vote', [GameController::class, 'vote']);
 

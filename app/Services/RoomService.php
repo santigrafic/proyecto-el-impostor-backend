@@ -121,7 +121,7 @@ class RoomService
         return $this->words[array_rand($this->words)];
     }
 
-    public function startGame(string $roomId, string $hostId): array
+    public function startGame(string $roomId, string $hostId, $wordsPerPlayer = 3): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -141,6 +141,16 @@ class RoomService
         if (count($room['players']) < 2) {
             throw new \Exception('Not enough players');
         }
+
+        // Palabras por jugador
+        $room['wordsPerPlayer'] = $wordsPerPlayer; // por defecto 3
+        foreach ($room['players'] as $id => $_) {
+            $room['playedWords'][$id] = []; // inicializar array vacío por jugador
+        }
+
+        // Turnos aleatorios
+        $playerIds = array_keys($room['players']);
+        $room['currentTurn'] = $playerIds[array_rand($playerIds)];
 
         // Asignar impostor
         $playerIds = array_keys($room['players']);
@@ -178,7 +188,10 @@ class RoomService
         return [
             'nickname' => $player['nickname'],
             'role' => $player['role'],
-            'word' => $player['role'] === 'player' ? $room['word'] : null
+            'word' => $player['role'] === 'player' ? $room['word'] : null,
+            'currentTurn' => $room['currentTurn'],
+            'wordsPerPlayer' => $room['wordsPerPlayer'], // para frontend
+            'words' => $room['playedWords'][$playerId] ?? []
         ];
     }
 
