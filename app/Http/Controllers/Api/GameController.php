@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\GameService;
 use Illuminate\Http\Request;
+use Illuminate\Http\JsonResponse;
 
 class GameController extends Controller
 {
@@ -79,6 +80,19 @@ class GameController extends Controller
         }
     }
 
+    public function startVoting(string $roomId): JsonResponse
+    {
+        try {
+            $result = $this->gameService->startVoting($roomId);
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 400);
+        }
+    }
+
     public function vote(string $roomId, Request $request)
     {
         $data = $request->validate([
@@ -93,5 +107,14 @@ class GameController extends Controller
                 $data['votedPlayerId']
             )
         );
+    }
+
+    public function results(string $roomId)
+    {
+        try {
+            return response()->json($this->gameService->getResults($roomId));
+        } catch (\Exception $e) {
+            return response()->json(['error' => $e->getMessage()], 400);
+        }
     }
 }

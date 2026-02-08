@@ -138,7 +138,7 @@ class RoomService
             throw new \Exception('Only host can start the game');
         }
 
-        if (count($room['players']) < 2) {
+        if (count($room['players']) < 3) {
             throw new \Exception('Not enough players');
         }
 

@@ -28,5 +28,8 @@ Route::prefix('games')->group(function () {
     Route::post('{roomId}/word', [GameController::class, 'playWord']);
 });
 
+Route::post('/games/{roomId}/start-voting', [GameController::class, 'startVoting']);
 Route::post('/games/{roomId}/vote', [GameController::class, 'vote']);
+
+Route::get('/games/{roomId}/results', [GameController::class, 'results']);
 
