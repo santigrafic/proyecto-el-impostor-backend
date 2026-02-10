@@ -112,7 +112,7 @@ class RoomService
     private function generateGuestNickname(array $room): string
     {
         $num = count($room['players']) + 1;
-        return 'Invitado' . str_pad($num, 2, '0', STR_PAD_LEFT);
+        return 'Player_' . str_pad($num, 2, '0', STR_PAD_LEFT);
     }
 
     //Generar palabra
