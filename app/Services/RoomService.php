@@ -3,9 +3,12 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 class RoomService
 {
+    // Array origianl de palabras por si fallan las api
     private array $words = [
         'Pizza',
         'Avión',
@@ -22,7 +25,7 @@ class RoomService
         $room = [
             'hostId' => null,
             'players' => [],
-            'word' => $this->randomWord(),
+            'word' => $this->apiRandomWord(),
             'impostorId' => null,
             'status' => 'waiting'
         ];
@@ -119,6 +122,30 @@ class RoomService
     private function randomWord(): string
     {
         return $this->words[array_rand($this->words)];
+    }
+
+    // Generar palabra random desde una api externa
+    private function apiRandomWord(): string
+    {
+        try {
+            $response = Http::get('https://random-word-api.herokuapp.com/word?diff=1&lang=es');
+
+            if ($response->status() == 200) {
+
+                $body = $response->body(); // obtenemos el texto crudo
+                $data = json_decode($body, true); // lo convertimos a array
+
+                if (is_array($data) && isset($data[0])) {
+                    return ucfirst($data[0]); // devolvemos la palabra con mayúscula inicial
+                }
+            }
+        } catch (\Exception $e) {
+            // Aquí puedes loguear el error si quieres
+            Log::error('Error obteniendo palabra: ' . $e->getMessage());
+        }
+
+        // Fallback por si la API falla
+        return $this->randomWord();
     }
 
     public function startGame(string $roomId, string $hostId, $wordsPerPlayer = 3): array
