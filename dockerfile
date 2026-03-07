@@ -4,6 +4,7 @@ FROM php:8.2-cli
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
+    zip \
     libpq-dev
 
 # Instalar extensiones PHP necesarias
@@ -17,6 +18,9 @@ WORKDIR /var/www
 
 # Copiar archivos del proyecto
 COPY . .
+
+# Memoria para Composer
+ENV COMPOSER_MEMORY_LIMIT=-1
 
 # Instalar dependencias
 RUN composer install --no-dev --optimize-autoloader
