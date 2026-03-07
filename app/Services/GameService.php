@@ -1,0 +1,267 @@
+<?php
+
+namespace App\Services;
+
+use Illuminate\Support\Facades\Cache;
+
+class GameService
+{
+    /**
+     * Obtener estado global de la partida
+     */
+    public function getGameState(string $roomId): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        // if ($room['status'] !== 'playing') {
+        //    throw new \Exception('Game not started');
+        //}
+
+        $impostorNickname = $room['players'][$room['impostorId']]['nickname'] ?? null;
+
+        //$playedWordsCount = 0;
+
+        $wordsByPlayer = [];
+
+        foreach ($room['players'] as $playerId => $player) {
+            $wordsByPlayer[] = [
+                'nickname' => $player['nickname'],
+                'words' => $room['playedWords'][$playerId] ?? [],
+            ];
+        }
+
+        return [
+            'roomId' => $roomId,
+            'status' => $room['status'],
+            'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
+            'playedWordsCount' => array_sum(array_map('count', $room['playedWords'] ?? [])),
+            'totalPlayers' => count($room['players']),
+            'wordsByPlayer' => $wordsByPlayer,
+            'votesCount' => count($room['votes'] ?? []),
+            'votes' => $room['votes'] ?? [],
+            'winner' => $room['winner'] ?? null,
+            'impostorNickname' => $impostorNickname ?? null,
+        ];
+    }
+
+    /**
+     * Información privada del jugador (rol y palabra)
+     */
+    public function getPlayerGameInfo(string $roomId, string $playerId): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        if (!isset($room['players'][$playerId])) {
+            throw new \Exception('Player not in room');
+        }
+
+        if (!in_array($room['status'], ['playing', 'voting', 'finished'])) {
+            throw new \Exception('Invalid game state');
+        }
+
+        $player = $room['players'][$playerId];
+
+        return [
+            'playerId' => $playerId,
+            'nickname' => $player['nickname'],
+            'role' => $player['role'],
+            'word' => $player['role'] === 'player' ? $room['word'] : null,
+            'words' => $room['playedWords'][$playerId] ?? [],
+            'wordsPerPlayer' => $room['wordsPerPlayer'],
+            'hasPlayed' => count($room['playedWords'][$playerId] ?? []) >= $room['wordsPerPlayer'],
+            'isMyTurn' => $room['currentTurn'] === $playerId,
+            'hasVoted' => isset($room['votes'][$playerId]) || false,
+        ];
+    }
+
+    /**
+     * El jugador envía su palabra
+     */
+    public function playWord(string $roomId, string $playerId, string $word): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        if ($room['status'] !== 'playing') {
+            throw new \Exception('Game not started');
+        }
+
+        if (!isset($room['players'][$playerId])) {
+            throw new \Exception('Player not in room');
+        }
+
+        //if ($room['currentTurn'] === null) {
+        //    throw new \Exception('No active turn');
+        //}
+
+        // Inicializar si no existe
+        if (!isset($room['playedWords'][$playerId])) {
+            $room['playedWords'][$playerId] = [];
+        }
+
+        // Comprobar si ya ha usado todas sus palabras
+        if (count($room['playedWords'][$playerId]) >= $room['wordsPerPlayer']) {
+            throw new \Exception('Player already played all words');
+        }
+
+        // Comprobar turno
+        if ($playerId !== $room['currentTurn']) {
+            throw new \Exception('No es tu turno');
+        }
+
+        // Añadir palabra
+        $room['playedWords'][$playerId][] = $word;
+
+        // ¿Todos los jugadores han usado todas sus palabras?
+        $allPlayersFinished = true;
+
+        foreach ($room['players'] as $id => $_) {
+            if (count($room['playedWords'][$id]) < $room['wordsPerPlayer']) {
+                $allPlayersFinished = false;
+                break;
+            }
+        }
+
+        if ($allPlayersFinished) {
+            $room['currentTurn'] = null;
+        } else {
+            // Elegir siguiente jugador con turnos restantes
+            $playerIds = array_keys($room['players']);
+            $currentIndex = array_search($playerId, $playerIds);
+
+            for ($i = 1; $i <= count($playerIds); $i++) {
+                $nextIndex = ($currentIndex + $i) % count($playerIds);
+                $nextId = $playerIds[$nextIndex];
+
+                if (count($room['playedWords'][$nextId] ?? []) < $room['wordsPerPlayer']) {
+                    $room['currentTurn'] = $nextId;
+                    break;
+                }
+            }
+        }
+
+        // Guardar estado
+        Cache::put("room_$roomId", $room, 3600);
+
+        return [
+            'message' => 'Word played successfully',
+            'playedWords' => count($room['playedWords']),
+            'totalPlayers' => count($room['players']),
+            'status' => $room['status']
+        ];
+    }
+
+    public function startVoting(string $roomId): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        logger()->info('START VOTING', [
+            'roomId' => $roomId,
+            'status' => $room['status'] ?? null,
+        ]);
+
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        //if ($room['status'] !== 'playing') {
+        //    throw new \Exception('Game is not in playing state');
+        //}
+
+        $room['status'] = 'voting';
+        $room['votes'] = [];
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        return ['message' => 'Voting started'];
+    }
+
+    public function vote(string $roomId, string $playerId, string $votedPlayerId): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        if ($room['status'] !== 'voting') {
+            throw new \Exception('Voting phase not active');
+        }
+
+        if (!isset($room['players'][$playerId])) {
+            throw new \Exception('Player not in room');
+        }
+
+        if (!isset($room['players'][$votedPlayerId])) {
+            throw new \Exception('Voted player not in room');
+        }
+
+        if ($playerId === $votedPlayerId) {
+            throw new \Exception('You cannot vote yourself');
+        }
+
+        if (isset($room['votes'][$playerId])) {
+            throw new \Exception('Player already voted');
+        }
+
+        $room['votes'][$playerId] = $votedPlayerId;
+
+        // ¿Han votado todos?
+        if (count($room['votes']) === count($room['players'])) {
+            $room['status'] = 'finished';
+        }
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        return ['message' => 'Vote registered'];
+    }
+
+    public function getResults(string $roomId): array
+    {
+        $roomId = strtoupper($roomId);
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception('Room not found');
+        }
+
+        if ($room['status'] !== 'finished') {
+            throw new \Exception('Game not finished yet');
+        }
+
+        $impostorId = $room['impostorId'] ?? null;
+        $voteCounts = array_count_values($room['votes'] ?? []);
+        $impostorNickname = $room['players'][$room['impostorId']]['nickname'] ?? null;
+
+        $maxVotes = max(array_values($voteCounts) ?: [0]);
+        $ties = array_filter($voteCounts, fn($v) => $v === $maxVotes);
+
+        // Si hay empate o el impostor tiene menos votos que el máximo, gana el impostor
+        $winner = (count($ties) > 1 || ($impostorId && ($voteCounts[$impostorId] ?? 0) < $maxVotes))
+            ? 'impostor'
+            : 'players';
+
+        return [
+            'winner' => $winner,
+            'votes' => $voteCounts,
+            'impostorNickname' => $impostorNickname,
+        ];
+    }
+}
