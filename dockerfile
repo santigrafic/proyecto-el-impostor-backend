@@ -1,32 +1,36 @@
+# 1️⃣ Base
 FROM php:8.2-cli
 
-# Instalar dependencias del sistema
+# 2️⃣ Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
     zip \
-    libpq-dev
+    libpq-dev \
+    libzip-dev \
+    && docker-php-ext-install pdo pdo_pgsql zip \
+    && apt-get clean
 
-# Instalar extensiones PHP necesarias
-RUN docker-php-ext-install pdo pdo_pgsql
-
-# Instalar composer
+# 3️⃣ Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# Crear directorio app
+# 4️⃣ Directorio de trabajo
 WORKDIR /var/www
 
-# Copiar archivos del proyecto
+# 5️⃣ Copiar proyecto
 COPY . .
 
-# Memoria para Composer
+# 6️⃣ Evitar problemas de memoria con Composer
 ENV COMPOSER_MEMORY_LIMIT=-1
 
-# Instalar dependencias
+# 7️⃣ Instalar dependencias
 RUN composer install --no-dev --optimize-autoloader
 
-# Exponer puerto
+# 8️⃣ Dar permisos a storage y cache
+RUN chmod -R 775 storage bootstrap/cache
+
+# 9️⃣ Exponer puerto
 EXPOSE 10000
 
-# Iniciar Laravel
+# 10️⃣ Comando para iniciar Laravel
 CMD php artisan serve --host=0.0.0.0 --port=10000
