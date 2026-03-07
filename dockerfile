@@ -1,7 +1,7 @@
-# 1️⃣ Base
-FROM php:8.2-cli
+# 1 Base: PHP 8.4
+FROM php:8.4-cli
 
-# 2️⃣ Instalar dependencias del sistema
+# 2 Instalar dependencias del sistema
 RUN apt-get update && apt-get install -y \
     git \
     unzip \
@@ -11,26 +11,26 @@ RUN apt-get update && apt-get install -y \
     && docker-php-ext-install pdo pdo_pgsql zip \
     && apt-get clean
 
-# 3️⃣ Instalar Composer
+# 3 Instalar Composer
 COPY --from=composer:latest /usr/bin/composer /usr/bin/composer
 
-# 4️⃣ Directorio de trabajo
+# 4 Directorio de trabajo
 WORKDIR /var/www
 
-# 5️⃣ Copiar proyecto
+# 5 Copiar proyecto
 COPY . .
 
-# 6️⃣ Evitar problemas de memoria con Composer
+# 6 Evitar problemas de memoria con Composer
 ENV COMPOSER_MEMORY_LIMIT=-1
 
-# 7️⃣ Instalar dependencias
+# 7 Instalar dependencias
 RUN composer install --no-dev --optimize-autoloader
 
-# 8️⃣ Dar permisos a storage y cache
+# 8 Dar permisos a storage y bootstrap/cache
 RUN chmod -R 775 storage bootstrap/cache
 
-# 9️⃣ Exponer puerto
+# 9 Exponer puerto para Render
 EXPOSE 10000
 
-# 10️⃣ Comando para iniciar Laravel
+# Comando para iniciar Laravel
 CMD php artisan serve --host=0.0.0.0 --port=10000
