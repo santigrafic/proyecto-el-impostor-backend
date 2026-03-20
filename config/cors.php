@@ -32,8 +32,8 @@ return [
     |
     */
     'allowed_origins' => [
-        'http://localhost:5173', // frontend local
-        'https://proyecto-el-impostor-frontend.vercel.app', // frontend en Vercel
+        env('LOCAL_FRONT_END'), // frontend local
+        env('FRONTEND_URL'), // frontend en Vercel
     ],
 
     /*
