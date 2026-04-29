@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\RoomService;
 use Illuminate\Http\Request;
+use App\Events\PlayerJoined;
 
 class RoomController extends Controller
 {
@@ -71,51 +72,68 @@ class RoomController extends Controller
     }
 
     public function join(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'playerId' => 'required|string',
-            'nickname' => 'nullable|string'
-        ]);
+{
+    $data = $request->validate([
+        'playerId' => 'required|string',
+        'nickname' => 'nullable|string',
+    ]);
 
-        try {
-            // Forzar mayúsculas en roomId
-            $roomId = strtoupper($roomId);
+    try {
+        // Forzar mayúsculas en roomId
+        $roomId = strtoupper($roomId);
 
-            $result = $this->roomService->joinRoom(
-                $roomId,
-                $data['playerId'],
-                $data['nickname'] ?? null
-            );
+        $result = $this->roomService->joinRoom(
+            $roomId,
+            $data['playerId'],
+            $data['nickname'] ?? null
+        );
 
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 404); // devuelve 404 en lugar de 500
-        }
+        /*
+         * Emitimos el evento websocket para notificar
+         * a todos los jugadores de la sala.
+         */
+        $room = \App\Models\Room::with('players')
+            ->where('id', $roomId)
+            ->firstOrFail();
+
+        broadcast(new PlayerJoined($room))->toOthers();
+
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 404);
     }
+}
 
     public function start(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'hostId' => 'required|string'
-        ]);
+{
+    $data = $request->validate([
+        'hostId' => 'required|string'
+    ]);
 
-        return response()->json(
-            $this->roomService->startGame($roomId, $data['hostId'])
+    try {
+        // Iniciar la partida
+        $result = $this->roomService->startGame(
+            strtoupper($roomId),
+            $data['hostId']
         );
-    }
 
-    public function me(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'playerId' => 'required|string'
-        ]);
+        // Recuperar la sala actualizada con sus jugadores
+        $room = \App\Models\Room::with('players')
+            ->where('id', strtoupper($roomId))
+            ->firstOrFail();
 
-        return response()->json(
-            $this->roomService->getPlayerInfo($roomId, $data['playerId'])
-        );
+        // Notificar a todos los clientes conectados
+        broadcast(new GameStarted($room))->toOthers();
+
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 400);
     }
+}
 
     public function state(string $roomId)
     {
