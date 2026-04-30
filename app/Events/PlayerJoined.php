@@ -2,30 +2,29 @@
 
 namespace App\Events;
 
-use App\Models\Room;
 use Illuminate\Broadcasting\Channel;
 use Illuminate\Broadcasting\InteractsWithSockets;
-use Illuminate\Broadcasting\ShouldBroadcast;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
 class PlayerJoined implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
+    public string $roomId;
+    public array $room;
 
-    public $room;
-
-    public function __construct(Room $room)
+    public function __construct(string $roomId, array $room)
     {
-        $this->room = $room->load('players');
+        $this->roomId = $roomId;
+        $this->room = $room;
     }
 
-    public function broadcastOn(): Channel
+    public function broadcastOn()
     {
-        return new Channel('room.' . $this->room->id);
+        return new Channel('room.' . $this->roomId);
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs()
     {
         return 'player.joined';
     }

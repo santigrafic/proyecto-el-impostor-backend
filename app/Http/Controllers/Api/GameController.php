@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Services\GameService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use App\Events\WordPlayed;
+use App\Events\TurnChanged;
 
 class GameController extends Controller
 {
@@ -73,6 +75,8 @@ class GameController extends Controller
                     $data['word']
                 )
             );
+
+            broadcast(new WordPlayed($roomId, $room));
         } catch (\Exception $e) {
             return response()->json([
                 'error' => $e->getMessage()

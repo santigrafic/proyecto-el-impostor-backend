@@ -123,4 +123,12 @@ return [
         'store' => env('APP_MAINTENANCE_STORE', 'database'),
     ],
 
+    /*
+    |----------------
+    | APP PROVIDERS
+    |----------------
+    */
+
+    App\Providers\BroadcastServiceProvider::class,
+    
 ];

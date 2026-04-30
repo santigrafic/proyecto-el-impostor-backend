@@ -8,10 +8,8 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class GameStarted implements ShouldBroadcast
+class WordPlayed implements ShouldBroadcast
 {
-    use Dispatchable, InteractsWithSockets, SerializesModels;
-
     public string $roomId;
     public array $room;
 
@@ -21,13 +19,20 @@ class GameStarted implements ShouldBroadcast
         $this->room = $room;
     }
 
-    public function broadcastOn(): Channel
+    public function broadcastOn()
     {
         return new Channel('room.' . $this->roomId);
     }
 
-    public function broadcastAs(): string
+    public function broadcastAs()
     {
-        return 'game.started';
+        return 'word.played';
+    }
+
+    public function broadcastWith()
+    {
+        return [
+            'room' => $this->room
+        ];
     }
 }

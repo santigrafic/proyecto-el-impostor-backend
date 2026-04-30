@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Services\RoomService;
 use Illuminate\Http\Request;
 use App\Events\PlayerJoined;
+use App\Events\GameStarted;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class RoomController extends Controller
 {
@@ -72,6 +75,7 @@ class RoomController extends Controller
     }
 
     public function join(string $roomId, Request $request)
+    
 {
     $data = $request->validate([
         'playerId' => 'required|string',
@@ -92,17 +96,14 @@ class RoomController extends Controller
          * Emitimos el evento websocket para notificar
          * a todos los jugadores de la sala.
          */
-        $room = \App\Models\Room::with('players')
-            ->where('id', $roomId)
-            ->firstOrFail();
-
-        broadcast(new PlayerJoined($room))->toOthers();
+        broadcast(new PlayerJoined($roomId, $this->roomService->getRoomState($roomId)));
 
         return response()->json($result);
     } catch (\Exception $e) {
+        \Log::error($e);
         return response()->json([
             'error' => $e->getMessage(),
-        ], 404);
+        ], 500);
     }
 }
 
@@ -113,25 +114,39 @@ class RoomController extends Controller
     ]);
 
     try {
-        // Iniciar la partida
+        $roomId = strtoupper($roomId);
+
+        \Log::info('ANTES START GAME');
+
         $result = $this->roomService->startGame(
-            strtoupper($roomId),
+            $roomId,
             $data['hostId']
         );
 
-        // Recuperar la sala actualizada con sus jugadores
-        $room = \App\Models\Room::with('players')
-            ->where('id', strtoupper($roomId))
-            ->firstOrFail();
+        \Log::info('DESPUÉS START GAME', ['result' => $result]);
 
-        // Notificar a todos los clientes conectados
-        broadcast(new GameStarted($room))->toOthers();
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            throw new \Exception("Room not found in cache after start");
+        }
+
+        \Log::info('ROOM DESDE CACHE', ['room' => $room]);
+
+        Log::info("BROADCAST GAME STARTED", [
+            'roomId' => $roomId
+        ]);
+
+        broadcast(new GameStarted($roomId, $room));
 
         return response()->json($result);
+
     } catch (\Exception $e) {
+        \Log::error("START ERROR: " . $e->getMessage());
+
         return response()->json([
             'error' => $e->getMessage(),
-        ], 400);
+        ], 500);
     }
 }
 
