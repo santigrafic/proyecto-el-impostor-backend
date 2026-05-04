@@ -32,8 +32,6 @@ class RoomService
 
         // Guardar en cache 1 hora
         Cache::put("room_$roomId", $room, 3600);
-Log::info("CREATED ROOM: $roomId");
-Log::info(Cache::get("room_$roomId"));
         return $roomId;
     }
 
@@ -72,8 +70,6 @@ Log::info(Cache::get("room_$roomId"));
         }
 
         Cache::put("room_$roomId", $room, 3600);
-        Log::info("JOIN ROOM: $roomId");
-Log::info(Cache::get("room_$roomId"));
 
         return [
             'id' => $playerId,
@@ -81,7 +77,6 @@ Log::info(Cache::get("room_$roomId"));
             'role' => 'player'
         ];
     }
-
 
     public function getPublicRoom(string $roomId): array
     {

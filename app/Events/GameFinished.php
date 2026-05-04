@@ -7,9 +7,8 @@ use Illuminate\Broadcasting\InteractsWithSockets;
 use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
-use App\Services\GameService;
 
-class WordPlayed implements ShouldBroadcast
+class GameFinished implements ShouldBroadcast
 {
     public string $roomId;
     public array $room;
@@ -27,15 +26,16 @@ class WordPlayed implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'word.played';
+        return 'game.finished';
     }
 
     public function broadcastWith()
     {
-        $gameService = new GameService();
-
         return [
-            'gameState' => $gameService->getGameState($this->roomId)
+            'gameState' => [
+            ...$this->room,
+            'players' => array_values($this->room['players']),
+        ]
         ];
     }
 }

@@ -9,7 +9,7 @@ use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 use App\Services\GameService;
 
-class WordPlayed implements ShouldBroadcast
+class VoteRegistered implements ShouldBroadcast
 {
     public string $roomId;
     public array $room;
@@ -27,15 +27,15 @@ class WordPlayed implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'word.played';
+        return 'vote.registered';
     }
 
     public function broadcastWith()
-    {
-        $gameService = new GameService();
+{
+    $service = new GameService();
 
-        return [
-            'gameState' => $gameService->getGameState($this->roomId)
-        ];
-    }
+    return [
+        'gameState' => $service->getGameState($this->roomId)
+    ];
+}
 }

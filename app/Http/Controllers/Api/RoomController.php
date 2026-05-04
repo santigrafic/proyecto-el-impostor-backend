@@ -74,9 +74,8 @@ class RoomController extends Controller
         ]);
     }
 
-    public function join(string $roomId, Request $request)
-    
-{
+    public function join(string $roomId, Request $request)    
+    {
     $data = $request->validate([
         'playerId' => 'required|string',
         'nickname' => 'nullable|string',
@@ -92,10 +91,7 @@ class RoomController extends Controller
             $data['nickname'] ?? null
         );
 
-        /*
-         * Emitimos el evento websocket para notificar
-         * a todos los jugadores de la sala.
-         */
+        // Emitimos el evento websocket para notificar a todos los jugadores de la sala.
         broadcast(new PlayerJoined($roomId, $this->roomService->getRoomState($roomId)));
 
         return response()->json($result);
