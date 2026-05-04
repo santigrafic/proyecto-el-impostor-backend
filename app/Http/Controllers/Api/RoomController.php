@@ -96,7 +96,6 @@ class RoomController extends Controller
 
         return response()->json($result);
     } catch (\Exception $e) {
-        \Log::error($e);
         return response()->json([
             'error' => $e->getMessage(),
         ], 500);
@@ -112,14 +111,10 @@ class RoomController extends Controller
     try {
         $roomId = strtoupper($roomId);
 
-        \Log::info('ANTES START GAME');
-
         $result = $this->roomService->startGame(
             $roomId,
             $data['hostId']
         );
-
-        \Log::info('DESPUÉS START GAME', ['result' => $result]);
 
         $room = Cache::get("room_$roomId");
 
@@ -127,22 +122,29 @@ class RoomController extends Controller
             throw new \Exception("Room not found in cache after start");
         }
 
-        \Log::info('ROOM DESDE CACHE', ['room' => $room]);
-
-        Log::info("BROADCAST GAME STARTED", [
-            'roomId' => $roomId
-        ]);
-
         broadcast(new GameStarted($roomId, $room));
 
         return response()->json($result);
 
     } catch (\Exception $e) {
-        \Log::error("START ERROR: " . $e->getMessage());
 
-        return response()->json([
-            'error' => $e->getMessage(),
-        ], 500);
+        switch ($e->getMessage()) {
+
+        case 'Not enough players':
+            return response()->json([
+                'error' => 'Se necesitan al menos 3 jugadores'
+            ], 400);
+
+        case 'Room not found':
+            return response()->json([
+                'error' => 'La sala no existe'
+            ], 404);
+
+        default:
+            return response()->json([
+                'error' => 'Error interno'
+            ], 500);
+    }
     }
 }
 
