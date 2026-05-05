@@ -75,7 +75,7 @@ class GameController extends Controller
             $data['word']
         );
 
-        // 🔥 IMPORTANTE: usar service en vez de cache directo
+        // IMPORTANTE: usar service en vez de cache directo
         $room = Cache::get("room_" . strtoupper($roomId));
 
         if (!$room) {
@@ -129,5 +129,21 @@ class GameController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
+    }
+
+    public function exitGame(Request $request, string $roomId)
+    {
+        dd("HIT EXIT GAME");
+        $playerId = $request->input('playerId');
+
+        $room = $this->removePlayer($roomId, $playerId);
+
+        // opcional: borrar sala
+        $this->deleteRoom($roomId);
+
+        // 👉 regla: si alguien se va → se cierra todo
+        broadcast(new GameExit($roomId))->toOthers();
+
+        return response()->json(['ok' => true]);
     }
 }
