@@ -8,7 +8,7 @@ use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use App\Events\WordPlayed;
-use App\Events\TurnChanged;
+use App\Events\GameExit;
 
 class GameController extends Controller
 {
@@ -133,13 +133,10 @@ class GameController extends Controller
 
     public function exitGame(Request $request, string $roomId)
     {
-        dd("HIT EXIT GAME");
         $playerId = $request->input('playerId');
 
-        $room = $this->removePlayer($roomId, $playerId);
-
         // opcional: borrar sala
-        $this->deleteRoom($roomId);
+       // $this->deleteRoom($roomId);
 
         // 👉 regla: si alguien se va → se cierra todo
         broadcast(new GameExit($roomId))->toOthers();
