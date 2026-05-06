@@ -136,9 +136,9 @@ class GameController extends Controller
         $playerId = $request->input('playerId');
 
         // opcional: borrar sala
-       // $this->deleteRoom($roomId);
+        // $this->deleteRoom($roomId);
 
-        // 👉 regla: si alguien se va → se cierra todo
+        // Si alguien se va → se cierra todo
         broadcast(new GameExit($roomId))->toOthers();
 
         return response()->json(['ok' => true]);

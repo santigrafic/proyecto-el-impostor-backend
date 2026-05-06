@@ -7,6 +7,8 @@ use App\Services\RoomService;
 use Illuminate\Http\Request;
 use App\Events\PlayerJoined;
 use App\Events\GameStarted;
+use App\Events\RoomExit;
+use App\Events\RoomClosed;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Log;
 
@@ -153,5 +155,38 @@ class RoomController extends Controller
         return response()->json(
             $this->roomService->getRoomState($roomId)
         );
+    }
+
+    public function exitRoom(Request $request, string $roomId)
+    {
+        $playerId = $request->input('playerId');
+
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            return response()->json(['error' => 'Room not found'], 404);
+        }
+
+        // CASO 1: jugador host
+        if ($room['hostId'] === $playerId) {
+
+            Cache::forget("room_$roomId");
+
+            broadcast(new RoomClosed($roomId))->toOthers();
+
+            return response()->json([
+                'ok' => true,
+                'reason' => 'host_left'
+            ]);
+        }
+    
+        // CASO 2: jugador normal
+        $room = $this->roomService->removePlayer($roomId, $playerId);
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        broadcast(new RoomExit($roomId, $room))->toOthers();
+
+        return response()->json(['ok' => true]);
     }
 }

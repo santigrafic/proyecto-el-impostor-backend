@@ -8,17 +8,15 @@ use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
 use Illuminate\Foundation\Events\Dispatchable;
 use Illuminate\Queue\SerializesModels;
 
-class RoomExit implements ShouldBroadcast
+class RoomClosed implements ShouldBroadcast
 {
     use Dispatchable, InteractsWithSockets, SerializesModels;
 
     public string $roomId;
-    public array $room;
 
-    public function __construct(string $roomId, array $room)
+    public function __construct(string $roomId)
     {
         $this->roomId = $roomId;
-        $this->room = $room;
     }
 
     public function broadcastOn()
@@ -28,13 +26,14 @@ class RoomExit implements ShouldBroadcast
 
     public function broadcastAs()
     {
-        return 'room.exit';
+        return 'room.closed';
     }
 
     public function broadcastWith()
     {
         return [
-            'room' => $this->room
+            'roomId' => $this->roomId,
+            'message' => 'Host left. Room closed.'
         ];
     }
 }

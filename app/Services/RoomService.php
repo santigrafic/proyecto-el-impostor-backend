@@ -112,8 +112,28 @@ class RoomService
     //Generar un nickname para los invitados
     private function generateGuestNickname(array $room): string
     {
-        $num = count($room['players']) + 1;
-        return 'Player_' . str_pad($num, 2, '0', STR_PAD_LEFT);
+        // NICKNAME SEGUN COUNT
+        // $num = count($room['players']) + 1;
+        // return 'Player_' . str_pad($num, 2, '0', STR_PAD_LEFT);
+
+        // Sacamos todos los nicknames actuales
+        $used = array_map(
+            fn($p) => $p['nickname'],
+            $room['players']
+        );
+
+        // Empezamos desde 1
+        $i = 1;
+
+        while (true) {
+            $nickname = 'Player_' . str_pad($i, 2, '0', STR_PAD_LEFT);
+
+            if (!in_array($nickname, $used)) {
+                return $nickname;
+            }
+
+            $i++;
+        }
     }
 
     //Generar palabra
@@ -239,5 +259,31 @@ class RoomService
                 ], $room['players'])
             )
         ];
+    }
+
+    public function removePlayer(string $roomId, string $playerId)
+    {
+        $roomId = strtoupper($roomId);
+
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            return null;
+        }
+
+        $room['players'] = array_values(
+            array_filter($room['players'], function ($p) use ($playerId) {
+                return $p['id'] !== $playerId;
+            })
+        );
+
+        // si el host se fue, reasignar host
+        if ($room['hostId'] === $playerId) {
+            $room['hostId'] = $room['players'][0]['id'] ?? null;
+        }
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        return $room;
     }
 }

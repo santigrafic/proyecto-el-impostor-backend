@@ -22,6 +22,9 @@ Route::get('/rooms/{roomId}/me', [RoomController::class, 'me']);
 // Devuelve es estado de la aprtida a todos los jugadores
 Route::get('/rooms/{roomId}/state', [RoomController::class, 'state']);
 
+// Un jugador sale de la room
+Route::post('rooms/{roomId}/exit', [RoomController::class, 'exitRoom']);
+
 Route::prefix('games')->group(function () {
     Route::get('{roomId}/state', [GameController::class, 'state']);
     Route::post('{roomId}/me', [GameController::class, 'me']);
