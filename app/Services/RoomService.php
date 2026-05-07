@@ -271,16 +271,18 @@ class RoomService
             return null;
         }
 
-        $room['players'] = array_values(
+        unset($room['players'][$playerId]);
+
+        /*$room['players'] = array_values(
             array_filter($room['players'], function ($p) use ($playerId) {
                 return $p['id'] !== $playerId;
             })
-        );
+        );*/
 
         // si el host se fue, reasignar host
-        if ($room['hostId'] === $playerId) {
+        /*if ($room['hostId'] === $playerId) {
             $room['hostId'] = $room['players'][0]['id'] ?? null;
-        }
+        }*/
 
         Cache::put("room_$roomId", $room, 3600);
 
