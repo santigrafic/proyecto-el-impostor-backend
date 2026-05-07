@@ -26,3 +26,5 @@ EXPOSE 10000
 
 # Arranque del servidor
 CMD php artisan serve --host=0.0.0.0 --port=$PORT
+
+ENV COMPOSER_ALLOW_SUPERUSER=1
