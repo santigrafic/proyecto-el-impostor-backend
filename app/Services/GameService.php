@@ -3,6 +3,8 @@
 namespace App\Services;
 
 use Illuminate\Support\Facades\Cache;
+use App\Events\VoteRegistered;
+use App\Events\GameFinished;
 
 class GameService
 {
@@ -38,7 +40,8 @@ class GameService
         return [
             'roomId' => $roomId,
             'status' => $room['status'],
-            'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
+            //'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
+            'players' => array_values($room['players']),
             'playedWordsCount' => array_sum(array_map('count', $room['playedWords'] ?? [])),
             'totalPlayers' => count($room['players']),
             'wordsByPlayer' => $wordsByPlayer,
@@ -223,12 +226,18 @@ class GameService
 
         $room['votes'][$playerId] = $votedPlayerId;
 
+        Cache::put("room_$roomId", $room, 3600);
+
+        broadcast(new VoteRegistered($roomId, $room));
+
         // ¿Han votado todos?
         if (count($room['votes']) === count($room['players'])) {
             $room['status'] = 'finished';
-        }
 
-        Cache::put("room_$roomId", $room, 3600);
+            Cache::put("room_$roomId", $room, 3600);
+
+            broadcast(new GameFinished($roomId, $room));
+        }
 
         return ['message' => 'Vote registered'];
     }

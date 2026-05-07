@@ -5,6 +5,12 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use App\Services\RoomService;
 use Illuminate\Http\Request;
+use App\Events\PlayerJoined;
+use App\Events\GameStarted;
+use App\Events\RoomExit;
+use App\Events\RoomClosed;
+use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\Log;
 
 class RoomController extends Controller
 {
@@ -70,57 +76,117 @@ class RoomController extends Controller
         ]);
     }
 
-    public function join(string $roomId, Request $request)
+    public function join(string $roomId, Request $request)    
     {
-        $data = $request->validate([
-            'playerId' => 'required|string',
-            'nickname' => 'nullable|string'
-        ]);
+    $data = $request->validate([
+        'playerId' => 'required|string',
+        'nickname' => 'nullable|string',
+    ]);
 
-        try {
-            // Forzar mayúsculas en roomId
-            $roomId = strtoupper($roomId);
+    try {
+        // Forzar mayúsculas en roomId
+        $roomId = strtoupper($roomId);
 
-            $result = $this->roomService->joinRoom(
-                $roomId,
-                $data['playerId'],
-                $data['nickname'] ?? null
-            );
+        $result = $this->roomService->joinRoom(
+            $roomId,
+            $data['playerId'],
+            $data['nickname'] ?? null
+        );
 
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 404); // devuelve 404 en lugar de 500
-        }
+        // Emitimos el evento websocket para notificar a todos los jugadores de la sala.
+        broadcast(new PlayerJoined($roomId, $this->roomService->getRoomState($roomId)));
+
+        return response()->json($result);
+    } catch (\Exception $e) {
+        return response()->json([
+            'error' => $e->getMessage(),
+        ], 500);
     }
+}
 
     public function start(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'hostId' => 'required|string'
-        ]);
+{
+    $data = $request->validate([
+        'hostId' => 'required|string'
+    ]);
 
-        return response()->json(
-            $this->roomService->startGame($roomId, $data['hostId'])
+    try {
+        $roomId = strtoupper($roomId);
+
+        $result = $this->roomService->startGame(
+            $roomId,
+            $data['hostId']
         );
-    }
 
-    public function me(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'playerId' => 'required|string'
-        ]);
+        $room = Cache::get("room_$roomId");
 
-        return response()->json(
-            $this->roomService->getPlayerInfo($roomId, $data['playerId'])
-        );
+        if (!$room) {
+            throw new \Exception("Room not found in cache after start");
+        }
+
+        broadcast(new GameStarted($roomId, $room));
+
+        return response()->json($result);
+
+    } catch (\Exception $e) {
+
+        switch ($e->getMessage()) {
+
+        case 'Not enough players':
+            return response()->json([
+                'error' => 'Se necesitan al menos 3 jugadores'
+            ], 400);
+
+        case 'Room not found':
+            return response()->json([
+                'error' => 'La sala no existe'
+            ], 404);
+
+        default:
+            return response()->json([
+                'error' => 'Error interno'
+            ], 500);
     }
+    }
+}
 
     public function state(string $roomId)
     {
         return response()->json(
             $this->roomService->getRoomState($roomId)
         );
+    }
+
+    public function exitRoom(Request $request, string $roomId)
+    {
+        $playerId = $request->input('playerId');
+
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            return response()->json(['error' => 'Room not found'], 404);
+        }
+
+        // CASO 1: jugador host
+        if ($room['hostId'] === $playerId) {
+
+            Cache::forget("room_$roomId");
+
+            broadcast(new RoomClosed($roomId))->toOthers();
+
+            return response()->json([
+                'ok' => true,
+                'reason' => 'host_left'
+            ]);
+        }
+    
+        // CASO 2: jugador normal
+        $room = $this->roomService->removePlayer($roomId, $playerId);
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        broadcast(new RoomExit($roomId, $room))->toOthers();
+
+        return response()->json(['ok' => true]);
     }
 }

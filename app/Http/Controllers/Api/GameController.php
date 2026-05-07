@@ -6,6 +6,9 @@ use App\Http\Controllers\Controller;
 use App\Services\GameService;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
+use Illuminate\Support\Facades\Cache;
+use App\Events\WordPlayed;
+use App\Events\GameExit;
 
 class GameController extends Controller
 {
@@ -59,26 +62,36 @@ class GameController extends Controller
      * Jugar palabra
      */
     public function playWord(string $roomId, Request $request)
-    {
-        $data = $request->validate([
-            'playerId' => 'required|string',
-            'word' => 'required|string|max:100'
-        ]);
+{
+    $data = $request->validate([
+        'playerId' => 'required|string',
+        'word' => 'required|string|max:100'
+    ]);
 
-        try {
-            return response()->json(
-                $this->gameService->playWord(
-                    $roomId,
-                    $data['playerId'],
-                    $data['word']
-                )
-            );
-        } catch (\Exception $e) {
-            return response()->json([
-                'error' => $e->getMessage()
-            ], 400);
+    try {
+        $result = $this->gameService->playWord(
+            $roomId,
+            $data['playerId'],
+            $data['word']
+        );
+
+        // IMPORTANTE: usar service en vez de cache directo
+        $room = Cache::get("room_" . strtoupper($roomId));
+
+        if (!$room) {
+            throw new \Exception("Room not found after playWord");
         }
+
+        broadcast(new WordPlayed($roomId, $room));
+
+        return response()->json($result);
+
+    } catch (\Throwable $e) {
+        return response()->json([
+            'error' => $e->getMessage()
+        ], 500);
     }
+}
 
     public function startVoting(string $roomId): JsonResponse
     {
@@ -116,5 +129,18 @@ class GameController extends Controller
         } catch (\Exception $e) {
             return response()->json(['error' => $e->getMessage()], 400);
         }
+    }
+
+    public function exitGame(Request $request, string $roomId)
+    {
+        $playerId = $request->input('playerId');
+
+        // opcional: borrar sala
+        // $this->deleteRoom($roomId);
+
+        // Si alguien se va → se cierra todo
+        broadcast(new GameExit($roomId))->toOthers();
+
+        return response()->json(['ok' => true]);
     }
 }

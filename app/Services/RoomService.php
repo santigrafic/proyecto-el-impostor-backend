@@ -32,7 +32,6 @@ class RoomService
 
         // Guardar en cache 1 hora
         Cache::put("room_$roomId", $room, 3600);
-
         return $roomId;
     }
 
@@ -79,7 +78,6 @@ class RoomService
         ];
     }
 
-
     public function getPublicRoom(string $roomId): array
     {
         $roomId = strtoupper($roomId);
@@ -114,8 +112,28 @@ class RoomService
     //Generar un nickname para los invitados
     private function generateGuestNickname(array $room): string
     {
-        $num = count($room['players']) + 1;
-        return 'Player_' . str_pad($num, 2, '0', STR_PAD_LEFT);
+        // NICKNAME SEGUN COUNT
+        // $num = count($room['players']) + 1;
+        // return 'Player_' . str_pad($num, 2, '0', STR_PAD_LEFT);
+
+        // Sacamos todos los nicknames actuales
+        $used = array_map(
+            fn($p) => $p['nickname'],
+            $room['players']
+        );
+
+        // Empezamos desde 1
+        $i = 1;
+
+        while (true) {
+            $nickname = 'Player_' . str_pad($i, 2, '0', STR_PAD_LEFT);
+
+            if (!in_array($nickname, $used)) {
+                return $nickname;
+            }
+
+            $i++;
+        }
     }
 
     //Generar palabra
@@ -127,7 +145,7 @@ class RoomService
     // Generar palabra random desde una api externa
     private function apiRandomWord(): string
     {
-        try {
+        /*try {
             $response = Http::get('https://random-word-api.herokuapp.com/word?diff=1&lang=es');
 
             if ($response->status() == 200) {
@@ -142,7 +160,7 @@ class RoomService
         } catch (\Exception $e) {
             // Aquí puedes loguear el error si quieres
             Log::error('Error obteniendo palabra: ' . $e->getMessage());
-        }
+        }*/
 
         // Fallback por si la API falla
         return $this->randomWord();
@@ -241,5 +259,31 @@ class RoomService
                 ], $room['players'])
             )
         ];
+    }
+
+    public function removePlayer(string $roomId, string $playerId)
+    {
+        $roomId = strtoupper($roomId);
+
+        $room = Cache::get("room_$roomId");
+
+        if (!$room) {
+            return null;
+        }
+
+        $room['players'] = array_values(
+            array_filter($room['players'], function ($p) use ($playerId) {
+                return $p['id'] !== $playerId;
+            })
+        );
+
+        // si el host se fue, reasignar host
+        if ($room['hostId'] === $playerId) {
+            $room['hostId'] = $room['players'][0]['id'] ?? null;
+        }
+
+        Cache::put("room_$roomId", $room, 3600);
+
+        return $room;
     }
 }

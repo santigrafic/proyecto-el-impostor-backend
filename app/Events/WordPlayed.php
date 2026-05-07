@@ -1,0 +1,41 @@
+<?php
+
+namespace App\Events;
+
+use Illuminate\Broadcasting\Channel;
+use Illuminate\Broadcasting\InteractsWithSockets;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcast;
+use Illuminate\Foundation\Events\Dispatchable;
+use Illuminate\Queue\SerializesModels;
+use App\Services\GameService;
+
+class WordPlayed implements ShouldBroadcast
+{
+    public string $roomId;
+    public array $room;
+
+    public function __construct(string $roomId, array $room)
+    {
+        $this->roomId = $roomId;
+        $this->room = $room;
+    }
+
+    public function broadcastOn()
+    {
+        return new Channel('room.' . $this->roomId);
+    }
+
+    public function broadcastAs()
+    {
+        return 'word.played';
+    }
+
+    public function broadcastWith()
+    {
+        $gameService = new GameService();
+
+        return [
+            'gameState' => $gameService->getGameState($this->roomId),
+        ];
+    }
+}
