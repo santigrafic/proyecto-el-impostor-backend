@@ -145,7 +145,7 @@ class RoomService
     // Generar palabra random desde una api externa
     private function apiRandomWord(): string
     {
-        try {
+        /*try {
             $response = Http::get('https://random-word-api.herokuapp.com/word?diff=1&lang=es');
 
             if ($response->status() == 200) {
@@ -160,7 +160,7 @@ class RoomService
         } catch (\Exception $e) {
             // Aquí puedes loguear el error si quieres
             Log::error('Error obteniendo palabra: ' . $e->getMessage());
-        }
+        }*/
 
         // Fallback por si la API falla
         return $this->randomWord();

@@ -35,7 +35,7 @@ class WordPlayed implements ShouldBroadcast
         $gameService = new GameService();
 
         return [
-            'gameState' => $gameService->getGameState($this->roomId)
+            'gameState' => $gameService->getGameState($this->roomId),
         ];
     }
 }
