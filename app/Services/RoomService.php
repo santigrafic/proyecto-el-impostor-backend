@@ -25,7 +25,8 @@ class RoomService
         $room = [
             'hostId' => null,
             'players' => [],
-            'word' => $this->apiRandomWord(),
+            'theme' => 'default',
+            //'word' => $this->apiRandomWord(),
             'impostorId' => null,
             'status' => 'waiting'
         ];
@@ -136,37 +137,7 @@ class RoomService
         }
     }
 
-    //Generar palabra
-    private function randomWord(): string
-    {
-        return $this->words[array_rand($this->words)];
-    }
-
-    // Generar palabra random desde una api externa
-    private function apiRandomWord(): string
-    {
-        /*try {
-            $response = Http::get('https://random-word-api.herokuapp.com/word?diff=1&lang=es');
-
-            if ($response->status() == 200) {
-
-                $body = $response->body(); // obtenemos el texto crudo
-                $data = json_decode($body, true); // lo convertimos a array
-
-                if (is_array($data) && isset($data[0])) {
-                    return ucfirst($data[0]); // devolvemos la palabra con mayúscula inicial
-                }
-            }
-        } catch (\Exception $e) {
-            // Aquí puedes loguear el error si quieres
-            Log::error('Error obteniendo palabra: ' . $e->getMessage());
-        }*/
-
-        // Fallback por si la API falla
-        return $this->randomWord();
-    }
-
-    public function startGame(string $roomId, string $hostId, $wordsPerPlayer = 3): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -206,6 +177,12 @@ class RoomService
         }
 
         $room['impostorId'] = $impostorId;
+
+        //Generar palabra
+        $theme = $theme ?? 'default';
+        $room['word'] = $this->randomWord($theme);
+        //$room['word'] = $this->randomWordArray();
+
         $room['status'] = 'playing';
 
         Cache::put("room_$roomId", $room, 3600);
@@ -213,6 +190,58 @@ class RoomService
         return [
             'status' => 'started'
         ];
+    }
+
+    //Generar palabra desde array
+    private function randomWordArray(): string
+    {
+        return $this->words[array_rand($this->words)];
+    }
+
+    // Generar palabra random desde una api externa
+    private function apiRandomWord(string $theme): string
+    {
+        if ($theme == 'default') {
+        try {
+            $response = Http::get('https://random-word-api.herokuapp.com/word?diff=1&lang=es');
+
+            if ($response->status() == 200) {
+
+                $body = $response->body(); // obtenemos el texto crudo
+                $data = json_decode($body, true); // lo convertimos a array
+
+                if (is_array($data) && isset($data[0])) {
+                    return ucfirst($data[0]); // devolvemos la palabra con mayúscula inicial
+                }
+            }
+        } catch (\Exception $e) {
+            Log::error('Error obteniendo palabra: ' . $e->getMessage());
+        }
+        // Fallback por si la API falla
+        return $this->randomWord($theme);
+        } else {
+            return $this->randomWord($theme);
+        }
+    }
+
+    // Generar palabra random por temática elegida desde json
+    private function randomWord(string $theme): string
+    {
+        $path = storage_path("app/words/{$theme}.json");
+
+        if (!file_exists($path)) {
+            throw new \Exception("Theme not found");
+        }
+
+        $json = file_get_contents($path);
+
+        $data = json_decode($json, true);
+
+        if (!isset($data['words']) || empty($data['words'])) {
+            throw new \Exception("No words available for this theme");
+        }
+
+        return mb_strtoupper($data['words'][array_rand($data['words'])], 'UTF-8');
     }
 
     public function getPlayerInfo(string $roomId, string $playerId): array

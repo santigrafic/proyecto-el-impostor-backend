@@ -107,7 +107,8 @@ class RoomController extends Controller
     public function start(string $roomId, Request $request)
 {
     $data = $request->validate([
-        'hostId' => 'required|string'
+        'hostId' => 'required|string',
+        'theme' => 'required|string'
     ]);
 
     try {
@@ -115,7 +116,8 @@ class RoomController extends Controller
 
         $result = $this->roomService->startGame(
             $roomId,
-            $data['hostId']
+            $data['hostId'],
+            $data['theme']
         );
 
         $room = Cache::get("room_$roomId");
