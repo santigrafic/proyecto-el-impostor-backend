@@ -25,7 +25,7 @@ class RoomService
         $room = [
             'hostId' => null,
             'players' => [],
-            'theme' => 'animals',
+            'theme' => 'default',
             //'word' => $this->apiRandomWord(),
             'impostorId' => null,
             'status' => 'waiting'
@@ -137,7 +137,7 @@ class RoomService
         }
     }
 
-    public function startGame(string $roomId, string $hostId, $wordsPerPlayer = 3): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -179,9 +179,9 @@ class RoomService
         $room['impostorId'] = $impostorId;
 
         //Generar palabra
-        $theme = $room['theme'] ?? 'default';
-        //$room['word'] = $this->randomWord($theme);
-        $room['word'] = $this->randomWordArray();
+        $theme = $theme ?? 'default';
+        $room['word'] = $this->randomWord($theme);
+        //$room['word'] = $this->randomWordArray();
 
         $room['status'] = 'playing';
 
@@ -234,6 +234,7 @@ class RoomService
         }
 
         $json = file_get_contents($path);
+
         $data = json_decode($json, true);
 
         if (!isset($data['words']) || empty($data['words'])) {
