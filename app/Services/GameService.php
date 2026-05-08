@@ -126,6 +126,16 @@ class GameService
             throw new \Exception('No es tu turno');
         }
 
+        // FORMATEAMOS LA PALABRA
+        // Limpiar espacios
+        $word = trim($word);
+        // Comprobar palabra vacía
+        if ($word === '') {
+            throw new \Exception('La palabra no puede estar vacía');
+        }
+        // Pasar a mayúsculas
+        $word = mb_strtoupper($word, 'UTF-8');
+
         // Añadir palabra
         $room['playedWords'][$playerId][] = $word;
 
