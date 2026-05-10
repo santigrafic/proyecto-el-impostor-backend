@@ -14,7 +14,12 @@ return new class extends Migration
         Schema::create('users', function (Blueprint $table) {
             $table->id();
             $table->string('name');
+            $table->string('nickname')->unique();
             $table->string('email')->unique();
+            $table->integer('games_played')->default(0);
+            $table->integer('games_won')->default(0);
+            $table->integer('times_impostor')->default(0);
+            $table->enum('role_user', ['user', 'admin'])->default('user');
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->rememberToken();

@@ -7,6 +7,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Database\Eloquent\Relations\BelongsToMany;
 
 
 class User extends Authenticatable
@@ -23,8 +24,13 @@ class User extends Authenticatable
      */
     protected $fillable = [
         'name',
+        'nickname',
         'email',
         'password',
+        'games_played',
+        'games_won',
+        'times_impostor',
+        'role_user'
     ];
 
     /**
@@ -48,5 +54,28 @@ class User extends Authenticatable
             'email_verified_at' => 'datetime',
             'password' => 'hashed',
         ];
+    }
+
+    // RELACIONES ELOQUENT
+    public function games(): BelongsToMany
+    {
+        return $this->belongsToMany(Game::class, 'game_user')
+            ->withPivot('role')
+            ->withTimestamps();
+    }
+
+    /** Roles */
+    public function hasRole(string $role): bool
+    {
+        return $this->role === $role;
+    }
+
+    public function hasAnyRole(string ...$roles): bool
+    {
+        return in_array($this->role, $roles);
+    }
+
+    public function isAdmin(): bool{
+        return $this->role === 'admin'; 
     }
 }
