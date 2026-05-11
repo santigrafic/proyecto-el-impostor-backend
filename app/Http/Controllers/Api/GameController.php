@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Cache;
 use App\Events\WordPlayed;
 use App\Events\GameExit;
+use App\Models\Game;
 
 class GameController extends Controller
 {
@@ -143,4 +144,78 @@ class GameController extends Controller
 
         return response()->json(['ok' => true]);
     }
+
+    // CRUD GAMES
+    /**
+     * Listado de partidas
+     */
+    public function index()
+    {
+        $games = Game::with('users:id,name,nickname')
+            ->latest()
+            ->paginate(10);
+
+        return response()->json($games);
+    }
+
+    /**
+     * Detalle de una partida
+     */
+    public function show(string $id)
+    {
+        $game = Game::with('users:id,name,nickname')
+            ->findOrFail($id);
+
+        $impostor = $game->users
+            ->firstWhere('pivot.role', 'impostor');
+
+        return response()->json([
+            'id' => $game->id,
+            'theme' => $game->theme,
+            'word' => $game->word,
+            'winner' => $game->winner,
+            'started_at' => $game->started_at,
+            'finished_at' => $game->finished_at,
+            'impostor' => $impostor?->only(['id', 'name', 'nickname']),
+            'users' => $game->users,
+        ]);
+    }
+
+    /**
+     * Guardar partida finalizada
+     */
+    public function store(Request $request)
+    {
+        $data = $request->validate([
+                'theme' => 'required|string',
+                'word' => 'required|string',
+                'winner' => 'required|in:impostor,survivors',
+                'started_at' => 'required|date',
+                'finished_at' => 'required|date|after_or_equal:started_at',
+                'players' => 'required|array',
+                'players.*.id' => 'required|exists:users,id',
+                'players.*.role' => 'required|in:impostor,player',
+            ]);
+
+            $game = $this->gameService->store($data);
+
+            return response()->json([
+                'message' => 'Partida guardada correctamente',
+                'game' => $game->load('users'),
+            ], 201);
+        }
+
+        public function finish(Request $request, string $roomId, GameService $service)
+        {
+            $game = Game::with('users')->findOrFail($roomId);
+
+            $gameState = $request->input('gameState');
+
+            $game = $service->finish($game, $gameState);
+
+            return response()->json([
+                'message' => 'Partida finalizada correctamente',
+                'game' => $game
+            ]);
+        }
 }

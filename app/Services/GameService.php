@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Cache;
 use App\Events\VoteRegistered;
 use App\Events\GameFinished;
 
+use App\Models\Game;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
 class GameService
 {
     /**
@@ -283,4 +287,61 @@ class GameService
             'impostorNickname' => $impostorNickname,
         ];
     }
+
+    public function store(array $data): Game
+    {
+        return DB::transaction(function () use ($data) {
+
+            $game = Game::create([
+                'theme' => $data['theme'],
+                'word' => $data['word'],
+                'winner' => $data['winner'],
+                'started_at' => $data['started_at'],
+                'finished_at' => $data['finished_at'],
+            ]);
+
+            foreach ($data['players'] as $player) {
+
+                $user = User::find($player['id']);
+                if (!$user) continue;
+
+                $game->users()->attach($user->id, [
+                    'role' => $player['role'],
+                ]);
+
+                // stats
+                $user->games_played++;
+
+                if ($player['role'] === 'impostor') {
+                    $user->times_impostor++;
+                }
+
+                $isWinner =
+                    ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
+                    || ($data['winner'] === 'survivors' && $player['role'] !== 'impostor');
+
+                if ($isWinner) {
+                    $user->games_won++;
+                }
+
+                $user->save();
+            }
+
+            return $game;
+        });
+    }
+
+    public function finish(Game $game): Game
+    {
+        if ($game->finished_at) {
+            return $game;
+        }
+
+        $game->update([
+            'finished_at' => now(),
+        ]);
+
+        return $game;
+    }
 }
+

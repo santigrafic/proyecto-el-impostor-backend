@@ -12,7 +12,7 @@ class AdminGameController extends Controller
      */
     public function index()
     {
-        $games = Game::with('users')->latest()->paginate(10);
+        $games = Game::with('users')->orderBy('created_at')->paginate(10);
         return view('admin.games.index', compact('games'));
     }
 

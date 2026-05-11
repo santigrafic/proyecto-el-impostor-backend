@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\UserController;
 use Illuminate\Support\Facades\Route;
 
 // Unirse a una room
@@ -36,3 +37,20 @@ Route::post('/games/{roomId}/start-voting', [GameController::class, 'startVoting
 Route::post('/games/{roomId}/vote', [GameController::class, 'vote']);
 
 Route::get('/games/{roomId}/results', [GameController::class, 'results']);
+
+// Rutas CRUD Games
+// Route::get('/games', [GameController::class, 'index']);
+// Route::get('/games/{id}', [GameController::class, 'show']);
+Route::middleware('game.token')->group(function () {
+    Route::post('/games', [GameController::class, 'store']);
+    Route::post('/games/{roomId}/finish', [GameController::class, 'finish']);
+});
+
+// Rutas Usuarios
+Route::apiResource('users', UserController::class);
+
+// Login
+Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/api/logout', [AuthController::class, 'logout']);
+});

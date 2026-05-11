@@ -22,7 +22,7 @@ class UserSeeder extends Seeder
             'password' => '123456',
             'games_played' => 0,
             'games_won' => 0,
-             'times_impostor' => 0,   
+            'times_impostor' => 0,   
             'role_user' => 'admin'
         ]);
 
