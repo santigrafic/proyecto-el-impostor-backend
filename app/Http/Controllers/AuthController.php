@@ -28,4 +28,14 @@ class AuthController extends Controller
             ->withErrors(['email' => 'credenciales incorrectas'])
             ->onlyInput('email');
     }
+
+    public function logout(Request $request)
+    {
+        Auth::logout();
+
+        $request->session()->invalidate();
+        $request->session()->regenerateToken();
+
+        return redirect()->route('login');
+    }
 }

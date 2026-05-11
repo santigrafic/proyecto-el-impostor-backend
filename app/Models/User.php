@@ -66,16 +66,19 @@ class User extends Authenticatable
 
     /** Roles */
     public function hasRole(string $role): bool
-    {
-        return $this->role === $role;
-    }
+{
+    return strtolower(trim($this->role_user)) === strtolower(trim($role));
+}
 
     public function hasAnyRole(string ...$roles): bool
-    {
-        return in_array($this->role, $roles);
-    }
+{
+    return in_array(
+        strtolower(trim($this->role_user)),
+        array_map(fn($role) => strtolower(trim($role)), $roles)
+    );
+}
 
     public function isAdmin(): bool{
-        return $this->role === 'admin'; 
+        return $this->role_user === 'admin'; 
     }
 }

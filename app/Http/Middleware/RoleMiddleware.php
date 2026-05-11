@@ -21,13 +21,13 @@ class RoleMiddleware
         Log::info('ROLE MIDDLEWARE DEBUG', [
         'user' => $usuario,
         'roles_required' => $roles,
-        'user_role' => $usuario?->role_user,
+        'role_user' => $usuario?->role_user,
     ]);
 
         if (! $usuario || ! $usuario->hasAnyRole(...$roles)) {
             Log::warning('ACCESS DENIED', [
             'user_id' => $usuario?->id,
-            'user_role' => $usuario?->role_user,
+            'role_user' => $usuario?->role_user,
             'required_roles' => $roles,
         ]);
 
