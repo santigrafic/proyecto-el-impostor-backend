@@ -14,13 +14,24 @@ class VerifyGameToken
      * @param  Closure(Request): (Response)  $next
      */
     public function handle(Request $request, Closure $next): Response
-    {
-        $token = $request->header('X-GAME-TOKEN');
+{
+    logger()->info('GAME TOKEN DEBUG', [
+        'header' => $request->header('X-GAME-TOKEN'),
+        'env' => env('GAME_API_TOKEN'),
+    ]);
 
-        if (!$token || $token !== env('GAME_API_TOKEN')) {
-            abort(403, 'Unauthorized game request');
-        }
-        
-        return $next($request);
+    $token = $request->header('X-GAME-TOKEN');
+
+    if (!$token || $token !== env('GAME_API_TOKEN')) {
+        return response()->json([
+            'error' => 'Unauthorized game request',
+            'debug' => [
+                'header' => $token,
+                'env' => env('GAME_API_TOKEN')
+            ]
+        ], 403);
     }
+
+    return $next($request);
+}
 }

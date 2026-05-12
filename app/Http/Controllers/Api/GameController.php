@@ -63,36 +63,36 @@ class GameController extends Controller
      * Jugar palabra
      */
     public function playWord(string $roomId, Request $request)
-{
-    $data = $request->validate([
-        'playerId' => 'required|string',
-        'word' => 'required|string|max:100'
-    ]);
+    {
+        $data = $request->validate([
+            'playerId' => 'required|string',
+            'word' => 'required|string|max:100'
+        ]);
 
-    try {
-        $result = $this->gameService->playWord(
-            $roomId,
-            $data['playerId'],
-            $data['word']
-        );
+        try {
+            $result = $this->gameService->playWord(
+                $roomId,
+                $data['playerId'],
+                $data['word']
+            );
 
-        // IMPORTANTE: usar service en vez de cache directo
-        $room = Cache::get("room_" . strtoupper($roomId));
+            // IMPORTANTE: usar service en vez de cache directo
+            $room = Cache::get("room_" . strtoupper($roomId));
 
-        if (!$room) {
-            throw new \Exception("Room not found after playWord");
+            if (!$room) {
+                throw new \Exception("Room not found after playWord");
+            }
+
+            broadcast(new WordPlayed($roomId, $room));
+
+            return response()->json($result);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'error' => $e->getMessage()
+            ], 500);
         }
-
-        broadcast(new WordPlayed($roomId, $room));
-
-        return response()->json($result);
-
-    } catch (\Throwable $e) {
-        return response()->json([
-            'error' => $e->getMessage()
-        ], 500);
     }
-}
 
     public function startVoting(string $roomId): JsonResponse
     {
@@ -211,7 +211,7 @@ class GameController extends Controller
 
             $gameState = $request->input('gameState');
 
-            $game = $service->finish($game, $gameState);
+            $game = $service->finish($game, /*$gameState*/);
 
             return response()->json([
                 'message' => 'Partida finalizada correctamente',

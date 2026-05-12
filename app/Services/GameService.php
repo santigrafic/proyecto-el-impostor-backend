@@ -63,6 +63,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -86,7 +87,7 @@ class GameService
             'words' => $room['playedWords'][$playerId] ?? [],
             'wordsPerPlayer' => $room['wordsPerPlayer'],
             'hasPlayed' => count($room['playedWords'][$playerId] ?? []) >= $room['wordsPerPlayer'],
-            'isMyTurn' => $room['currentTurn'] === $playerId,
+            'isMyTurn' => (string) $room['currentTurn'] === (string) $playerId,
             'hasVoted' => isset($room['votes'][$playerId]) || false,
         ];
     }
@@ -98,6 +99,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -121,12 +123,19 @@ class GameService
         }
 
         // Comprobar si ya ha usado todas sus palabras
-        if (count($room['playedWords'][$playerId]) >= $room['wordsPerPlayer']) {
+        if (count($room['playedWords'][$playerId] ?? []) >= $room['wordsPerPlayer']) {
             throw new \Exception('Player already played all words');
         }
 
         // Comprobar turno
-        if ($playerId !== $room['currentTurn']) {
+        logger()->info('PLAY WORD DEBUG', [
+            'playerId' => $playerId,
+            'currentTurn' => $room['currentTurn'],
+            'playedWordsKeys' => array_keys($room['playedWords']),
+            'playersKeys' => array_keys($room['players']),
+        ]);
+        
+        if ($playerId !== (string)$room['currentTurn']) {
             throw new \Exception('No es tu turno');
         }
 
@@ -147,7 +156,7 @@ class GameService
         $allPlayersFinished = true;
 
         foreach ($room['players'] as $id => $_) {
-            if (count($room['playedWords'][$id]) < $room['wordsPerPlayer']) {
+            if (count($room['playedWords'][$id] ?? []) < $room['wordsPerPlayer']) {
                 $allPlayersFinished = false;
                 break;
             }
@@ -213,6 +222,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');

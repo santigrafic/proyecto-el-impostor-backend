@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Models\Game;
 
 class RoomService
 {
@@ -40,6 +42,7 @@ class RoomService
     public function joinRoom(string $roomId, string $playerId, ?string $nickname): array
     {
         $roomId = strtoupper($roomId);
+        $playerId = (string) $playerId;
 
         $room = Cache::get("room_$roomId");
 
@@ -62,7 +65,7 @@ class RoomService
         $room['players'][$playerId] = [
             'id' => $playerId,
             'nickname' => $nickname,
-            'role' => $room['players'][$playerId]['role'] ?? 'player'
+            'role' => 'player'
         ];
 
         // Primer jugador = host
@@ -166,11 +169,11 @@ class RoomService
 
         // Turnos aleatorios
         $playerIds = array_keys($room['players']);
-        $room['currentTurn'] = $playerIds[array_rand($playerIds)];
+        $room['currentTurn'] = (string) $playerIds[array_rand($playerIds)];
 
         // Asignar impostor
         $playerIds = array_keys($room['players']);
-        $impostorId = $playerIds[array_rand($playerIds)];
+        $impostorId = (string) $playerIds[array_rand($playerIds)];
 
         foreach ($room['players'] as $id => &$player) {
             $player['role'] = ($id === $impostorId) ? 'impostor' : 'player';
@@ -185,10 +188,34 @@ class RoomService
 
         $room['status'] = 'playing';
 
+        // CREAR GAME EN BD
+        $game = Game::create([
+            'theme' => $theme,
+            'word' => $room['word'],
+            'winner' => null,
+            'started_at' => now(),
+            'finished_at' => null,
+        ]);
+
+        // CREAR PIVOT game_user
+        /*foreach ($room['players'] as $id => $player) {
+
+            $user = User::find($id);
+            if (!$user) continue;
+
+            $game->users()->attach($id, [
+                'role' => $player['role'],
+            ]);
+        }*/
+
+        // guardar relación game_id en cache room
+        //$room['game_id'] = $game->id;
+
         Cache::put("room_$roomId", $room, 3600);
 
         return [
-            'status' => 'started'
+            'status' => 'started',
+            //'game_id' => $game->id
         ];
     }
 
@@ -248,6 +275,7 @@ class RoomService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -293,8 +321,8 @@ class RoomService
     public function removePlayer(string $roomId, string $playerId)
     {
         $roomId = strtoupper($roomId);
-
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             return null;
