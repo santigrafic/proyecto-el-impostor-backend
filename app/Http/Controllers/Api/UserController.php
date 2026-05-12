@@ -68,6 +68,16 @@ class UserController extends Controller
         return response()->json($user);
     }
 
+    // RANKING
+    public function ranking()
+    {
+        $users = User::orderByDesc('games_won')
+            ->take(16)
+            ->get();
+
+        return response()->json($users);
+    }
+
     /**
      * Actualizar usuario
      */

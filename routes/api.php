@@ -3,6 +3,7 @@
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\GameController;
 use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 
 // Unirse a una room
@@ -48,9 +49,14 @@ Route::middleware('game.token')->group(function () {
 
 // Rutas Usuarios
 Route::apiResource('users', UserController::class);
+Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
+Route::get('ranking', [UserController::class, 'ranking']);
 
 // Login
 Route::post('/login', [AuthController::class, 'login']);
 Route::middleware('auth:sanctum')->group(function () {
-    Route::post('/api/logout', [AuthController::class, 'logout']);
+    Route::post('/logout', [AuthController::class, 'logout']);
 });
+
+// Register
+Route::post('/register', [AuthController::class, 'register']);

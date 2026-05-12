@@ -78,79 +78,80 @@ class RoomController extends Controller
 
     public function join(string $roomId, Request $request)    
     {
-    $data = $request->validate([
-        'playerId' => 'required|string',
-        'nickname' => 'nullable|string',
-    ]);
+        $data = $request->validate([
+            'playerId' => 'required|string',
+            'nickname' => 'nullable|string',
+        ]);
 
-    try {
-        // Forzar mayúsculas en roomId
-        $roomId = strtoupper($roomId);
+        try {
+            // Forzar mayúsculas en roomId
+            $roomId = strtoupper($roomId);
 
-        $result = $this->roomService->joinRoom(
-            $roomId,
-            $data['playerId'],
-            $data['nickname'] ?? null
-        );
+            $result = $this->roomService->joinRoom(
+                $roomId,
+                $data['playerId'],
+                $data['nickname'] ?? null
+            );
 
-        // Emitimos el evento websocket para notificar a todos los jugadores de la sala.
-        broadcast(new PlayerJoined($roomId, $this->roomService->getRoomState($roomId)));
+            // Emitimos el evento websocket para notificar a todos los jugadores de la sala.
+            broadcast(new PlayerJoined($roomId, $this->roomService->getRoomState($roomId)));
 
-        return response()->json($result);
-    } catch (\Exception $e) {
-        return response()->json([
-            'error' => $e->getMessage(),
-        ], 500);
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => $e->getMessage(),
+            ], 500);
+        }
     }
-}
 
     public function start(string $roomId, Request $request)
-{
-    $data = $request->validate([
-        'hostId' => 'required|string',
-        'theme' => 'required|string'
-    ]);
+    {
+        $data = $request->validate([
+            'hostId' => 'required|string',
+            'theme' => 'nullable|string'
+        ]);
 
-    try {
-        $roomId = strtoupper($roomId);
+        $theme = $data['theme'] ?? 'default';
+        $user = $request->user();
+        
+        try {
+            $roomId = strtoupper($roomId);
+            $result = $this->roomService->startGame(
+                $roomId,
+                $data['hostId'],
+                $data['theme'],
+            );
+            $room = Cache::get("room_$roomId");
 
-        $result = $this->roomService->startGame(
-            $roomId,
-            $data['hostId'],
-            $data['theme']
-        );
+            if (!$room) {
+                throw new \Exception("Room not found in cache after start");
+            }
 
-        $room = Cache::get("room_$roomId");
+            broadcast(new GameStarted($roomId, $room));
 
-        if (!$room) {
-            throw new \Exception("Room not found in cache after start");
+            return response()->json($result);
+
+        } catch (\Exception $e) {
+
+            switch ($e->getMessage()) {
+
+            case 'Not enough players':
+                return response()->json([
+                    'error' => 'Se necesitan al menos 3 jugadores'
+                ], 400);
+
+            case 'Room not found':
+                return response()->json([
+                    'error' => 'La sala no existe'
+                ], 404);
+
+            default:
+                return response()->json([
+                    'error' => 'Error interno'
+                ], 500);
         }
-
-        broadcast(new GameStarted($roomId, $room));
-
-        return response()->json($result);
-
-    } catch (\Exception $e) {
-
-        switch ($e->getMessage()) {
-
-        case 'Not enough players':
-            return response()->json([
-                'error' => 'Se necesitan al menos 3 jugadores'
-            ], 400);
-
-        case 'Room not found':
-            return response()->json([
-                'error' => 'La sala no existe'
-            ], 404);
-
-        default:
-            return response()->json([
-                'error' => 'Error interno'
-            ], 500);
+        }
     }
-    }
-}
 
     public function state(string $roomId)
     {
