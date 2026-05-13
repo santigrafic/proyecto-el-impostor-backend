@@ -341,17 +341,58 @@ class GameService
         });
     }
 
-    public function finish(Game $game): Game
+    public function finish(Game $game, array $data): Game
     {
-        if ($game->finished_at) {
-            return $game;
-        }
+        DB::transaction(function () use ($game, $data) {
 
-        $game->update([
-            'finished_at' => now(),
-        ]);
+            // 1. Actualizar game
+            $game->update([
+                'winner' => $data['winner'],
+                'finished_at' => now(),
+            ]);
 
-        return $game;
+            // 2. Recorrer jugadores
+            foreach ($data['players'] as $player) {
+
+                // Ignorar guests
+                if ($player['isGuest']) {
+                    continue;
+                }
+
+                $user = User::find($player['id']);
+
+                if (!$user) {
+                    continue;
+                }
+
+                // 3. Pivot game_user
+                $game->users()->syncWithoutDetaching([
+                    $user->id => [
+                        'role' => $player['role']
+                    ]
+                ]);
+
+                // 4. Stats
+                $user->increment('games_played');
+
+                // Veces impostor
+                if ($player['role'] === 'impostor') {
+                    $user->increment('times_impostor');
+                }
+
+                // Victoria
+                $hasWon =
+                    ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
+                    ||
+                    ($data['winner'] === 'survivors' && $player['role'] === 'player');
+
+                if ($hasWon) {
+                    $user->increment('games_won');
+                }
+            }
+        });
+
+        return $game->fresh();
     }
 }
 

@@ -197,25 +197,28 @@ class GameController extends Controller
                 'players.*.role' => 'required|in:impostor,player',
             ]);
 
-            $game = $this->gameService->store($data);
+        $game = $this->gameService->store($data);
 
-            return response()->json([
-                'message' => 'Partida guardada correctamente',
-                'game' => $game->load('users'),
-            ], 201);
-        }
+        return response()->json([
+            'message' => 'Partida guardada correctamente',
+            'game' => $game->load('users'),
+        ], 201);
+    }
 
-        public function finish(Request $request, string $roomId, GameService $service)
-        {
-            $game = Game::with('users')->findOrFail($roomId);
+    public function finish(Request $request, string $gameId, GameService $service)
+    {
+        $data = $request->validate([
+            'winner' => 'required|in:impostor,survivors',
+            'players' => 'required|array',
+        ]);
 
-            $gameState = $request->input('gameState');
+        $game = Game::findOrFail($gameId);
 
-            $game = $service->finish($game, /*$gameState*/);
+        $game = $service->finish($game, $data);
 
-            return response()->json([
-                'message' => 'Partida finalizada correctamente',
-                'game' => $game
-            ]);
-        }
+        return response()->json([
+            'message' => 'Partida finalizada correctamente',
+            'game' => $game
+        ]);
+    }
 }

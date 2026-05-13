@@ -16,7 +16,6 @@ Route::get('/rooms/{roomId}', [RoomController::class, 'show']);
 Route::post('/rooms', [RoomController::class, 'create']);
 
 // Iniciar partida
-Route::post('/rooms/{roomId}/start', [RoomController::class, 'start']);
 
 // Obtener info de cada jugador (/rooms/{roomId}/me?playerId=xxx)
 Route::get('/rooms/{roomId}/me', [RoomController::class, 'me']);
@@ -43,7 +42,8 @@ Route::get('/games/{roomId}/results', [GameController::class, 'results']);
 // Route::get('/games', [GameController::class, 'index']);
 // Route::get('/games/{id}', [GameController::class, 'show']);
 Route::middleware('game.token')->group(function () {
-    Route::post('/games', [GameController::class, 'store']);
+    //Route::post('/games', [GameController::class, 'store']);
+    Route::post('/rooms/{roomId}/start', [RoomController::class, 'start']);
     Route::post('/games/{roomId}/finish', [GameController::class, 'finish']);
 });
 

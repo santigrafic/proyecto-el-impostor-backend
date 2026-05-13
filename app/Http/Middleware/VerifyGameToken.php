@@ -17,17 +17,17 @@ class VerifyGameToken
 {
     logger()->info('GAME TOKEN DEBUG', [
         'header' => $request->header('X-GAME-TOKEN'),
-        'env' => env('GAME_API_TOKEN'),
+        'config' => config('services.game_token'),
     ]);
 
     $token = $request->header('X-GAME-TOKEN');
 
-    if (!$token || $token !== env('GAME_API_TOKEN')) {
+    if (!$token || $token !== config('services.game_token')) {
         return response()->json([
             'error' => 'Unauthorized game request',
             'debug' => [
                 'header' => $token,
-                'env' => env('GAME_API_TOKEN')
+                'config' => config('services.game_token')
             ]
         ], 403);
     }

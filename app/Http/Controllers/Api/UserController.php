@@ -82,32 +82,35 @@ class UserController extends Controller
      * Actualizar usuario
      */
     public function update(Request $request, string $id)
-{
-    $user = User::findOrFail($id);
+    {
+        $user = User::findOrFail($id);
 
-    $request->validate([
-        'name' => 'sometimes|string|max:255',
-        'nickname' => 'sometimes|string|max:255',
-        'email' => 'sometimes|email|unique:users,email,' . $user->id,
-        'password' => 'nullable|min:6',
-    ]);
+        $request->validate([
+            'name' => 'sometimes|string|max:255',
+            'nickname' => 'sometimes|string|max:255',
+            'email' => 'sometimes|email|unique:users,email,' . $user->id,
+            'password' => 'nullable|min:6',
+        ]);
 
-    $user->update($request->only([
-        'name',
-        'nickname',
-        'email',
-    ]));
+        $user->update($request->only([
+            'name',
+            'nickname',
+            'email',
+            'games_played',
+            'games_won',
+            'times_impostor',
+        ]));
 
-    if ($request->filled('password')) {
-        $user->password = bcrypt($request->password);
-        $user->save();
+        if ($request->filled('password')) {
+            $user->password = bcrypt($request->password);
+            $user->save();
+        }
+
+        return response()->json([
+            'message' => 'Usuario actualizado correctamente',
+            'user' => $user,
+        ]);
     }
-
-    return response()->json([
-        'message' => 'Usuario actualizado correctamente',
-        'user' => $user,
-    ]);
-}
 
     /**
      * Eliminar usuario

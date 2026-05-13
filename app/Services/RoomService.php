@@ -43,6 +43,7 @@ class RoomService
     {
         $roomId = strtoupper($roomId);
         $playerId = (string) $playerId;
+        $isGuest = false;
 
         $room = Cache::get("room_$roomId");
 
@@ -60,12 +61,14 @@ class RoomService
 
         if (!$nickname) {
             $nickname = $this->generateGuestNickname($room);
+            $isGuest = true;
         }
 
         $room['players'][$playerId] = [
             'id' => $playerId,
             'nickname' => $nickname,
-            'role' => 'player'
+            'role' => 'player',
+            'isGuest' => $isGuest
         ];
 
         // Primer jugador = host
@@ -78,7 +81,8 @@ class RoomService
         return [
             'id' => $playerId,
             'nickname' => $nickname,
-            'role' => 'player'
+            'role' => 'player',
+            'isGuest' => $isGuest
         ];
     }
 
@@ -188,34 +192,32 @@ class RoomService
 
         $room['status'] = 'playing';
 
-        // CREAR GAME EN BD
-        $game = Game::create([
-            'theme' => $theme,
-            'word' => $room['word'],
-            'winner' => null,
-            'started_at' => now(),
-            'finished_at' => null,
-        ]);
+        // CREAR GAME EN BD SI ALGÚN JUGADOR ESTÁ LOGUEADO
+        $hasAuthenticatedPlayers = collect($room['players'])
+            ->contains(fn ($player) => !$player['isGuest']);
 
-        // CREAR PIVOT game_user
-        /*foreach ($room['players'] as $id => $player) {
+        $gameId = null;
 
-            $user = User::find($id);
-            if (!$user) continue;
+        if ($hasAuthenticatedPlayers) {
 
-            $game->users()->attach($id, [
-                'role' => $player['role'],
+            $game = Game::create([
+                'theme' => $theme,
+                'word' => $room['word'],
+                'winner' => null,
+                'started_at' => now(),
+                'finished_at' => null,
             ]);
-        }*/
 
-        // guardar relación game_id en cache room
-        //$room['game_id'] = $game->id;
+            $gameId = $game->id;
+
+            $room['game_id'] = $gameId;
+        }
 
         Cache::put("room_$roomId", $room, 3600);
 
         return [
             'status' => 'started',
-            //'game_id' => $game->id
+            'game_id' => $gameId,
         ];
     }
 

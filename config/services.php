@@ -35,4 +35,6 @@ return [
         ],
     ],
 
+    'game_token' => env('GAME_API_TOKEN'),
+
 ];
