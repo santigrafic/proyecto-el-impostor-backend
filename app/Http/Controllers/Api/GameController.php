@@ -208,7 +208,7 @@ class GameController extends Controller
     public function finish(Request $request, string $gameId, GameService $service)
     {
         $data = $request->validate([
-            'winner' => 'required|in:impostor,survivors',
+            'winner' => 'required|in:impostor,players',
             'players' => 'required|array',
         ]);
 
