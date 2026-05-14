@@ -5,6 +5,8 @@ namespace App\Services;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Log;
+use App\Models\User;
+use App\Models\Game;
 
 class RoomService
 {
@@ -40,6 +42,8 @@ class RoomService
     public function joinRoom(string $roomId, string $playerId, ?string $nickname): array
     {
         $roomId = strtoupper($roomId);
+        $playerId = (string) $playerId;
+        $isGuest = false;
 
         $room = Cache::get("room_$roomId");
 
@@ -57,12 +61,14 @@ class RoomService
 
         if (!$nickname) {
             $nickname = $this->generateGuestNickname($room);
+            $isGuest = true;
         }
 
         $room['players'][$playerId] = [
             'id' => $playerId,
             'nickname' => $nickname,
-            'role' => $room['players'][$playerId]['role'] ?? 'player'
+            'role' => 'player',
+            'isGuest' => $isGuest
         ];
 
         // Primer jugador = host
@@ -75,7 +81,8 @@ class RoomService
         return [
             'id' => $playerId,
             'nickname' => $nickname,
-            'role' => 'player'
+            'role' => 'player',
+            'isGuest' => $isGuest
         ];
     }
 
@@ -137,7 +144,7 @@ class RoomService
         }
     }
 
-    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 1): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -166,14 +173,14 @@ class RoomService
 
         // Turnos aleatorios
         $playerIds = array_keys($room['players']);
-        $room['currentTurn'] = $playerIds[array_rand($playerIds)];
+        $room['currentTurn'] = (string) $playerIds[array_rand($playerIds)];
 
         // Asignar impostor
         $playerIds = array_keys($room['players']);
-        $impostorId = $playerIds[array_rand($playerIds)];
+        $impostorId = (string) $playerIds[array_rand($playerIds)];
 
         foreach ($room['players'] as $id => &$player) {
-            $player['role'] = ($id === $impostorId) ? 'impostor' : 'player';
+            $player['role'] = ((string) $id === $impostorId) ? 'impostor' : 'player';
         }
 
         $room['impostorId'] = $impostorId;
@@ -185,10 +192,23 @@ class RoomService
 
         $room['status'] = 'playing';
 
+        $game = Game::create([
+            'theme' => $theme,
+            'word' => $room['word'],
+            'winner' => null,
+            'started_at' => now(),
+            'finished_at' => null,
+        ]);
+
+        $gameId = $game->id;
+
+        $room['game_id'] = $gameId;
+
         Cache::put("room_$roomId", $room, 3600);
 
         return [
-            'status' => 'started'
+            'status' => 'started',
+            'game_id' => $gameId,
         ];
     }
 
@@ -248,6 +268,7 @@ class RoomService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -293,8 +314,8 @@ class RoomService
     public function removePlayer(string $roomId, string $playerId)
     {
         $roomId = strtoupper($roomId);
-
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             return null;

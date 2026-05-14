@@ -6,6 +6,10 @@ use Illuminate\Support\Facades\Cache;
 use App\Events\VoteRegistered;
 use App\Events\GameFinished;
 
+use App\Models\Game;
+use App\Models\User;
+use Illuminate\Support\Facades\DB;
+
 class GameService
 {
     /**
@@ -40,6 +44,7 @@ class GameService
         return [
             'roomId' => $roomId,
             'status' => $room['status'],
+            'game_id' => $room['game_id'] ?? null,
             //'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
             'players' => array_values($room['players']),
             'playedWordsCount' => array_sum(array_map('count', $room['playedWords'] ?? [])),
@@ -59,6 +64,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -82,7 +88,7 @@ class GameService
             'words' => $room['playedWords'][$playerId] ?? [],
             'wordsPerPlayer' => $room['wordsPerPlayer'],
             'hasPlayed' => count($room['playedWords'][$playerId] ?? []) >= $room['wordsPerPlayer'],
-            'isMyTurn' => $room['currentTurn'] === $playerId,
+            'isMyTurn' => (string) $room['currentTurn'] === (string) $playerId,
             'hasVoted' => isset($room['votes'][$playerId]) || false,
         ];
     }
@@ -94,6 +100,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -117,12 +124,19 @@ class GameService
         }
 
         // Comprobar si ya ha usado todas sus palabras
-        if (count($room['playedWords'][$playerId]) >= $room['wordsPerPlayer']) {
+        if (count($room['playedWords'][$playerId] ?? []) >= $room['wordsPerPlayer']) {
             throw new \Exception('Player already played all words');
         }
 
         // Comprobar turno
-        if ($playerId !== $room['currentTurn']) {
+        logger()->info('PLAY WORD DEBUG', [
+            'playerId' => $playerId,
+            'currentTurn' => $room['currentTurn'],
+            'playedWordsKeys' => array_keys($room['playedWords']),
+            'playersKeys' => array_keys($room['players']),
+        ]);
+        
+        if ($playerId !== (string)$room['currentTurn']) {
             throw new \Exception('No es tu turno');
         }
 
@@ -143,7 +157,7 @@ class GameService
         $allPlayersFinished = true;
 
         foreach ($room['players'] as $id => $_) {
-            if (count($room['playedWords'][$id]) < $room['wordsPerPlayer']) {
+            if (count($room['playedWords'][$id] ?? []) < $room['wordsPerPlayer']) {
                 $allPlayersFinished = false;
                 break;
             }
@@ -209,6 +223,7 @@ class GameService
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
+        $playerId = (string) $playerId;
 
         if (!$room) {
             throw new \Exception('Room not found');
@@ -283,4 +298,102 @@ class GameService
             'impostorNickname' => $impostorNickname,
         ];
     }
+
+    public function store(array $data): Game
+    {
+        return DB::transaction(function () use ($data) {
+
+            $game = Game::create([
+                'theme' => $data['theme'],
+                'word' => $data['word'],
+                'winner' => $data['winner'],
+                'started_at' => $data['started_at'],
+                'finished_at' => $data['finished_at'],
+            ]);
+
+            foreach ($data['players'] as $player) {
+
+                $user = User::find($player['id']);
+                if (!$user) continue;
+
+                $game->users()->attach($user->id, [
+                    'role' => $player['role'],
+                ]);
+
+                // stats
+                $user->games_played++;
+
+                if ($player['role'] === 'impostor') {
+                    $user->times_impostor++;
+                }
+
+                $isWinner =
+                    ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
+                    || ($data['winner'] === 'players' && $player['role'] !== 'impostor');
+
+                if ($isWinner) {
+                    $user->games_won++;
+                }
+
+                $user->save();
+            }
+
+            return $game;
+        });
+    }
+
+    public function finish(Game $game, array $data): Game
+    {
+        DB::transaction(function () use ($game, $data) {
+
+            // 1. Actualizar game
+            $game->update([
+                'winner' => $data['winner'],
+                'finished_at' => now(),
+            ]);
+
+            // 2. Recorrer jugadores
+            foreach ($data['players'] as $player) {
+
+                // Ignorar guests
+                if ($player['isGuest']) {
+                    continue;
+                }
+
+                $user = User::find($player['id']);
+
+                if (!$user) {
+                    continue;
+                }
+
+                // 3. Pivot game_user
+                $game->users()->syncWithoutDetaching([
+                    $user->id => [
+                        'role' => $player['role']
+                    ]
+                ]);
+
+                // 4. Stats
+                $user->increment('games_played');
+
+                // Veces impostor
+                if ($player['role'] === 'impostor') {
+                    $user->increment('times_impostor');
+                }
+
+                // Victoria
+                $hasWon =
+                    ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
+                    ||
+                    ($data['winner'] === 'players' && $player['role'] === 'player');
+
+                if ($hasWon) {
+                    $user->increment('games_won');
+                }
+            }
+        });
+
+        return $game->fresh();
+    }
 }
+

@@ -2,6 +2,8 @@
 
 use App\Http\Controllers\Api\RoomController;
 use App\Http\Controllers\Api\GameController;
+use App\Http\Controllers\Api\UserController;
+use App\Http\Controllers\Api\AuthController;
 use Illuminate\Support\Facades\Route;
 
 // Unirse a una room
@@ -14,12 +16,11 @@ Route::get('/rooms/{roomId}', [RoomController::class, 'show']);
 Route::post('/rooms', [RoomController::class, 'create']);
 
 // Iniciar partida
-Route::post('/rooms/{roomId}/start', [RoomController::class, 'start']);
 
 // Obtener info de cada jugador (/rooms/{roomId}/me?playerId=xxx)
 Route::get('/rooms/{roomId}/me', [RoomController::class, 'me']);
 
-// Devuelve es estado de la aprtida a todos los jugadores
+// Devuelve es estado de la partida a todos los jugadores
 Route::get('/rooms/{roomId}/state', [RoomController::class, 'state']);
 
 // Un jugador sale de la room
@@ -36,3 +37,26 @@ Route::post('/games/{roomId}/start-voting', [GameController::class, 'startVoting
 Route::post('/games/{roomId}/vote', [GameController::class, 'vote']);
 
 Route::get('/games/{roomId}/results', [GameController::class, 'results']);
+
+// Rutas CRUD Games
+// Route::get('/games', [GameController::class, 'index']);
+// Route::get('/games/{id}', [GameController::class, 'show']);
+Route::middleware('game.token')->group(function () {
+    //Route::post('/games', [GameController::class, 'store']);
+    Route::post('/rooms/{roomId}/start', [RoomController::class, 'start']);
+    Route::post('/games/{roomId}/finish', [GameController::class, 'finish']);
+});
+
+// Rutas Usuarios
+Route::apiResource('users', UserController::class);
+Route::middleware('auth:sanctum')->get('/me', [AuthController::class, 'me']);
+Route::get('ranking', [UserController::class, 'ranking']);
+
+// Login
+Route::post('/login', [AuthController::class, 'login']);
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/logout', [AuthController::class, 'logout']);
+});
+
+// Register
+Route::post('/register', [AuthController::class, 'register']);
