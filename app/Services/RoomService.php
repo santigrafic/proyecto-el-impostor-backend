@@ -197,6 +197,7 @@ class RoomService
             ->contains(fn ($player) => !$player['isGuest']);
 
         $gameId = null;
+        $room['game_id'] = $gameId;
 
         if ($hasAuthenticatedPlayers) {
 

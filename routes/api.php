@@ -20,7 +20,7 @@ Route::post('/rooms', [RoomController::class, 'create']);
 // Obtener info de cada jugador (/rooms/{roomId}/me?playerId=xxx)
 Route::get('/rooms/{roomId}/me', [RoomController::class, 'me']);
 
-// Devuelve es estado de la aprtida a todos los jugadores
+// Devuelve es estado de la partida a todos los jugadores
 Route::get('/rooms/{roomId}/state', [RoomController::class, 'state']);
 
 // Un jugador sale de la room

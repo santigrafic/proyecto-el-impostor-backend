@@ -44,6 +44,7 @@ class GameService
         return [
             'roomId' => $roomId,
             'status' => $room['status'],
+            'game_id' => $room['game_id'] ?? null,
             //'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
             'players' => array_values($room['players']),
             'playedWordsCount' => array_sum(array_map('count', $room['playedWords'] ?? [])),
@@ -328,7 +329,7 @@ class GameService
 
                 $isWinner =
                     ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
-                    || ($data['winner'] === 'survivors' && $player['role'] !== 'impostor');
+                    || ($data['winner'] === 'players' && $player['role'] !== 'impostor');
 
                 if ($isWinner) {
                     $user->games_won++;
@@ -384,7 +385,7 @@ class GameService
                 $hasWon =
                     ($data['winner'] === 'impostor' && $player['role'] === 'impostor')
                     ||
-                    ($data['winner'] === 'survivors' && $player['role'] === 'player');
+                    ($data['winner'] === 'players' && $player['role'] === 'player');
 
                 if ($hasWon) {
                     $user->increment('games_won');
