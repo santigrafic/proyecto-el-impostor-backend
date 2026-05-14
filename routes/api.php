@@ -60,3 +60,8 @@ Route::middleware('auth:sanctum')->group(function () {
 
 // Register
 Route::post('/register', [AuthController::class, 'register']);
+
+// Ruta par aahcer ping en render
+Route::get('/api/ping', function () {
+    return response()->json(['ok' => true]);
+});
