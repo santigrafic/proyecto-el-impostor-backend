@@ -5,6 +5,7 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\User;
+use Illuminate\Support\Facades\Log;
 
 class UserController extends Controller
 {
@@ -33,7 +34,7 @@ class UserController extends Controller
      */
     public function store(Request $request)
     {
-        \Log::info('STORE USER REQUEST', $request->all());
+        Log::info('STORE USER REQUEST', $request->all());
         $request->validate([
             'name' => 'required|string|max:255',
             'nickname' => 'required|string|max:255',
