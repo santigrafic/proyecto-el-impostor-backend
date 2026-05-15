@@ -247,7 +247,7 @@ class RoomService
     // Generar palabra random por temática elegida desde json
     private function randomWord(string $theme): string
     {
-        $path = storage_path("app/words/{$theme}.json");
+        $path = storage_path("app/resources/data/themes/{$theme}.json");
 
         if (!file_exists($path)) {
             throw new \Exception("Theme not found");
