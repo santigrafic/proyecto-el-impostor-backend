@@ -147,7 +147,9 @@ class RoomController extends Controller
 
             default:
                 return response()->json([
-                    'error' => 'Error interno'
+                    'error' => $e->getMessage(),
+                    'line' => $e->getLine(),
+                    'file' => $e->getFile(),
                 ], 500);
         }
         }
