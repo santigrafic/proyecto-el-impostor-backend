@@ -65,3 +65,16 @@ Route::post('/register', [AuthController::class, 'register']);
 Route::get('/api/ping', function () {
     return response()->json(['ok' => true]);
 });
+
+// Ruta para probar la BBDD
+Route::get('/test-db', function () {
+    try {
+        DB::connection()->getPdo();
+        return ['status' => 'OK'];
+    } catch (\Throwable $e) {
+        return [
+            'status' => 'ERROR',
+            'message' => $e->getMessage(),
+        ];
+    }
+});
