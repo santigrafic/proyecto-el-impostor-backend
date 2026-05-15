@@ -20,6 +20,7 @@ class VerifyGameToken
         
         logger()->info('GAME TOKEN DEBUG', [
             'header' => $request->header('X-GAME-TOKEN'),
+            // 'config' => config('services.game_token')
             'config' => $GAME_API_TOKEN,
         ]);
 
@@ -30,6 +31,7 @@ class VerifyGameToken
                 'error' => 'Unauthorized game request',
                 'debug' => [
                     'header' => $token,
+                    // 'config' => config('services.game_token')
                     'config' => $GAME_API_TOKEN
                 ]
             ], 403);
