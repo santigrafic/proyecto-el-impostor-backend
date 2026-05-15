@@ -144,7 +144,7 @@ class RoomService
         }
     }
 
-    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 1): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
