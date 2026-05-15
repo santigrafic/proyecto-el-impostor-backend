@@ -18,9 +18,6 @@ COPY . .
 # Instalar dependencias Laravel
 RUN composer install --no-dev --optimize-autoloader
 
-# Limpiar cache Laravel
-RUN php artisan optimize:clear
-
 # Permisos Laravel
 RUN chmod -R 775 storage bootstrap/cache
 
@@ -28,6 +25,6 @@ RUN chmod -R 775 storage bootstrap/cache
 EXPOSE 10000
 
 # Arranque del servidor
-CMD php artisan serve --host=0.0.0.0 --port=$PORT
+CMD php artisan optimize:clear && php artisan serve --host=0.0.0.0 --port=$PORT
 
 ENV COMPOSER_ALLOW_SUPERUSER=1
