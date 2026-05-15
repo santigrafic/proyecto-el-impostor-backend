@@ -18,6 +18,9 @@ COPY . .
 # Instalar dependencias Laravel
 RUN composer install --no-dev --optimize-autoloader
 
+# Limpiar cache Laravel
+RUN php artisan optimize:clear
+
 # Permisos Laravel
 RUN chmod -R 775 storage bootstrap/cache
 
