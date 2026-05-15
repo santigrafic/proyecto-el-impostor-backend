@@ -144,7 +144,7 @@ class RoomService
         }
     }
 
-    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 1): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -180,7 +180,7 @@ class RoomService
         $impostorId = (string) $playerIds[array_rand($playerIds)];
 
         foreach ($room['players'] as $id => &$player) {
-            $player['role'] = ($id === $impostorId) ? 'impostor' : 'player';
+            $player['role'] = ((string) $id === $impostorId) ? 'impostor' : 'player';
         }
 
         $room['impostorId'] = $impostorId;
@@ -192,27 +192,17 @@ class RoomService
 
         $room['status'] = 'playing';
 
-        // CREAR GAME EN BD SI ALGÚN JUGADOR ESTÁ LOGUEADO
-        $hasAuthenticatedPlayers = collect($room['players'])
-            ->contains(fn ($player) => !$player['isGuest']);
+        $game = Game::create([
+            'theme' => $theme,
+            'word' => $room['word'],
+            'winner' => null,
+            'started_at' => now(),
+            'finished_at' => null,
+        ]);
 
-        $gameId = null;
+        $gameId = $game->id;
+
         $room['game_id'] = $gameId;
-
-        if ($hasAuthenticatedPlayers) {
-
-            $game = Game::create([
-                'theme' => $theme,
-                'word' => $room['word'],
-                'winner' => null,
-                'started_at' => now(),
-                'finished_at' => null,
-            ]);
-
-            $gameId = $game->id;
-
-            $room['game_id'] = $gameId;
-        }
 
         Cache::put("room_$roomId", $room, 3600);
 

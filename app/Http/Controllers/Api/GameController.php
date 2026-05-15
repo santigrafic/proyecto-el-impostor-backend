@@ -205,14 +205,23 @@ class GameController extends Controller
         ], 201);
     }
 
-    public function finish(Request $request, string $gameId, GameService $service)
+    public function finish(Request $request, string $roomId, GameService $service)
     {
         $data = $request->validate([
             'winner' => 'required|in:impostor,players',
             'players' => 'required|array',
+            'game_id' => 'required|integer'
         ]);
 
-        $game = Game::findOrFail($gameId);
+        $game = Game::findOrFail($data['game_id']);
+
+        // Bloqueo de duplicados
+        if ($game->finished_at) {
+            return response()->json([
+                'message' => 'Partida finalizada correctamente',
+                'game' => $game
+            ]);
+        }
 
         $game = $service->finish($game, $data);
 
