@@ -78,3 +78,14 @@ Route::get('/test-db', function () {
         ];
     }
 });
+
+// Ruta para probar .env
+Route::get('/debug-env-db', function () {
+    return [
+        'DB_CONNECTION' => env('DB_CONNECTION'),
+        'DB_HOST' => env('DB_HOST'),
+        'DB_DATABASE' => env('DB_DATABASE'),
+        'DB_USERNAME' => env('DB_USERNAME'),
+        'config_default' => config('database.default'),
+    ];
+});
