@@ -87,5 +87,6 @@ Route::get('/debug-env-db', function () {
         'DB_DATABASE' => env('DB_DATABASE'),
         'DB_USERNAME' => env('DB_USERNAME'),
         'config_default' => config('database.default'),
+        'token' => env('GAME_API_TOKEN'),
     ];
 });
