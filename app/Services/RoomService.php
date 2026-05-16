@@ -144,7 +144,7 @@ class RoomService
         }
     }
 
-    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 3): array
+    public function startGame(string $roomId, string $hostId, string $theme, $wordsPerPlayer = 2): array
     {
         $roomId = strtoupper($roomId);
         $room = Cache::get("room_$roomId");
@@ -187,6 +187,7 @@ class RoomService
 
         //Generar palabra
         $theme = $theme ?? 'default';
+        $room['theme'] = $theme;
         $room['word'] = $this->randomWord($theme);
         //$room['word'] = $this->randomWordArray();
 

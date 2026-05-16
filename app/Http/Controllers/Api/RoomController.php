@@ -108,7 +108,8 @@ class RoomController extends Controller
     {
         $data = $request->validate([
             'hostId' => 'required|string',
-            'theme' => 'nullable|string'
+            'theme' => 'required|string',
+            'wordsPerPlayer' => 'required|integer'
         ]);
 
         $theme = $data['theme'] ?? 'default';
@@ -120,7 +121,9 @@ class RoomController extends Controller
                 $roomId,
                 $data['hostId'],
                 $data['theme'],
+                $data['wordsPerPlayer'],
             );
+            
             $room = Cache::get("room_$roomId");
 
             if (!$room) {
