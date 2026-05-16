@@ -48,6 +48,7 @@ class GameService
             'theme' => $room['theme'],
             //'players' => array_values(array_map(fn($p) => ['id' => $p['id'], 'nickname' => $p['nickname']], $room['players'])),
             'players' => array_values($room['players']),
+            'currentTurn' => $room['currentTurn'],
             'playedWordsCount' => array_sum(array_map('count', $room['playedWords'] ?? [])),
             'totalPlayers' => count($room['players']),
             'wordsByPlayer' => $wordsByPlayer,
